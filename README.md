@@ -34,4 +34,4 @@ This plug-in is adapted from the idea of ​​[doujinshi_metadata_plugins](http
 
 **Version 2.1.0** - 25 August 2021
 
--New label can convert English to Chinese
+- New label can convert English to Chinese
