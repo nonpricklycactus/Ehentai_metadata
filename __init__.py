@@ -5785,6 +5785,8 @@ def to_metadata(log,gmetadata,ExHentai_Status): # {{{
     for tag in tags_:
         comment = "SELECT translation  from "
         taglist = tag.split(':')	# 循环输出列表值
+        if len(taglist) != 2:
+            continue
         if taglist[0]== "artist":
            tag_mapper = taglist[0] + ":" + taglist[1]
            tag_mappers.append(tag_mapper)
@@ -5909,9 +5911,11 @@ class Ehentai(Source):
         Option('ipb_member_id','string',None,_('ipb_member_id'),
                _('If Use Exhentai is True, please input your cookies.')),
         Option('ipb_pass_hash','string',None,_('ipb_pass_hash'),
+               _('If Use Exhentai is True, please input your cookies.')),
+        Option('igneous','string',None,_('igneous'),
                _('If Use Exhentai is True, please input your cookies.'))
                )
-    
+        
     config_help_message = ('<p>'+_('To Download Metadata from exhentai.org you must sign up'
                             ' a free account and get the cookies of .exhentai.org.'
                             ' If you don\'t have an account, you can <a href="%s">sign up</a>.')) % 'https://forums.e-hentai.org/index.php'
@@ -5925,7 +5929,9 @@ class Ehentai(Source):
         
         ExHentai_Status = self.prefs['Use_Exhentai']
         ExHentai_Cookies = [{'name':'ipb_member_id', 'value':self.prefs['ipb_member_id'], 'domain':'.exhentai.org', 'path':'/'},
-                            {'name':'ipb_pass_hash', 'value':self.prefs['ipb_pass_hash'], 'domain':'.exhentai.org', 'path':'/'}]
+                            {'name':'ipb_pass_hash', 'value':self.prefs['ipb_pass_hash'], 'domain':'.exhentai.org', 'path':'/'},
+                            {'name':'igneous', 'value':self.prefs['igneous'], 'domain':'.exhentai.org', 'path':'/'},
+                            ]
         
         if ExHentai_Status is True:
             for cookie in ExHentai_Cookies:
@@ -6108,6 +6114,10 @@ if __name__ == '__main__': # tests {{{
             (
                 {'title':'桜の蜜','authors':['劇毒少女 (ke-ta)']},
                 [title_test('桜の蜜', exact=False)]
+            ),
+            (
+                {'title':'[野際かえで] ここより楽園 (COMIC LO 2021年8月号) [中国翻訳] [DL版]', 'authors': ['野際かえで']},
+                [title_test('ここより楽園', exact=False)]
             )
     ])
     conn.close()
