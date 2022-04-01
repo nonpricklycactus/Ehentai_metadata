@@ -26,11 +26,19 @@
 
 **版本历史**
 
-**Version 1.1.0** - 2021-4-5
+**Version 2.1.1** - 2022-3-30
 
-- Initial release
+- 解决无法进入里站问题
+- cookie填写项增加igneous值
+
 
 **Version 2.1.0** - 2021-8-25
 
 - 将标签变得更简洁
 - 将部分标签改为中文
+
+
+
+**Version 1.1.0** - 2021-4-5
+
+- Initial release

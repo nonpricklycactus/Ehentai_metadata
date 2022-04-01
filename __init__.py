@@ -5889,7 +5889,7 @@ class Ehentai(Source):
     
     name = 'E-hentai Galleries'
     author = 'nonpricklycactus'
-    version = (2,1,0)
+    version = (2,1,1)
     minimum_calibre_version = (1, 0, 0)
     
     description = _('Download metadata and cover from e-hentai.org.'
@@ -5909,6 +5909,8 @@ class Ehentai(Source):
         Option('ipb_member_id','string',None,_('ipb_member_id'),
                _('If Use Exhentai is True, please input your cookies.')),
         Option('ipb_pass_hash','string',None,_('ipb_pass_hash'),
+               _('If Use Exhentai is True, please input your cookies.')),
+        Option('igneous', 'string', None, _('igneous'),
                _('If Use Exhentai is True, please input your cookies.'))
                )
     
@@ -5925,7 +5927,8 @@ class Ehentai(Source):
         
         ExHentai_Status = self.prefs['Use_Exhentai']
         ExHentai_Cookies = [{'name':'ipb_member_id', 'value':self.prefs['ipb_member_id'], 'domain':'.exhentai.org', 'path':'/'},
-                            {'name':'ipb_pass_hash', 'value':self.prefs['ipb_pass_hash'], 'domain':'.exhentai.org', 'path':'/'}]
+                            {'name':'ipb_pass_hash', 'value':self.prefs['ipb_pass_hash'], 'domain':'.exhentai.org', 'path':'/'},
+                            {'name': 'igneous', 'value': self.prefs['igneous'], 'domain': '.exhentai.org', 'path': '/'}]
         
         if ExHentai_Status is True:
             for cookie in ExHentai_Cookies:

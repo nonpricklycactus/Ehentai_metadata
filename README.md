@@ -28,10 +28,18 @@ This plug-in is adapted from the idea of ​​[doujinshi_metadata_plugins](http
 
 **Version History:**
 
-**Version 1.1.0** - 5 April 2021
+**Version 2.1.1** - 25 March 2022
 
-- Initial release
+- Fixed the problem of not being able to access the Exhentai
+- Cookie entry adds igneous value
+
 
 **Version 2.1.0** - 25 August 2021
 
 - New label can convert English to Chinese
+
+**Version 1.1.0** - 5 April 2021
+
+- Initial release
+
+
