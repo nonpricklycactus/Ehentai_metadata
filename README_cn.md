@@ -20,11 +20,30 @@
 5. 选择完之后，插件安装完成
 6. 若有其它警告一律选是，重启客户端后看是否安装成功
 
+**数据库配置**
+
+1. 安装好插件后
+2. 将数据库文件（EhTagTranslation.db）安装在你想保存位置
+3. 在插件中勾选Chinese_Exhentai，再在下面EhTagTranslation_db文本框中输入数据库文件位置。如：
+
+&emsp;&emsp;&emsp;&emsp;位置为E:\Code\python\Ehentai_metadata\EhTagTranslation.db
+
+&emsp;&emsp;&emsp;&emsp;文本框中填写E:\Code\python\Ehentai_metadata
+
+
 **特别感谢**
 
 该插件由wuyingren的[doujinshi_metadata_plugins](https://github.com/yingziwu/doujinshi_metadata_plugins)思路改写。
 
+该数据库来自EhTagTranslation的[Database](https://github.com/EhTagTranslation/Database)数据改造而来
+
 **版本历史**
+
+**Version 2.2.0** - 2022-3-31
+
+- 增加是否翻译功能
+- 更改翻译数据库方式，需要手动添加数据源
+
 
 **Version 2.1.1** - 2022-3-30
 
