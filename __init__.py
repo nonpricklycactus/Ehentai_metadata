@@ -269,8 +269,12 @@ class Ehentai(Source):
             return None
         #print("获取的信息：",results)
         gidlist = []
+        i = 0
         for r in results:
+            if i>3:
+                break
             gidlist.append(list(r))
+            i=i+1
         return gidlist
 
     # }}}
