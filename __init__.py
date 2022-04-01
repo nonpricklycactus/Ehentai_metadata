@@ -42,9 +42,8 @@ def traslate(sqlitUrl,gmetadata):
         languages = gmetadata.languages
         i = 0
         for language in languages:
-            print("language:",language)
-            Newlanguage = findName(c,"SELECT name from language WHERE raw like '%{raw}%'".format(raw=language),language)
-            languages[i] = Newlanguage.replace(" ", "")
+            Newlanguage = findName(c,"SELECT name from language WHERE raw like '{raw}'".format(raw=language),language)
+            languages[i] = Newlanguage
             i=i+1
         gmetadata.languages = languages
 
@@ -52,20 +51,18 @@ def traslate(sqlitUrl,gmetadata):
         j = 0
         taglist = tag.split(":")
         tableName = getName(taglist,0)
-        nameSpace = findName(c,"SELECT name from rows WHERE key like '%{key}%'".format(key=tableName),tableName)
+        nameSpace = findName(c,"SELECT name from rows WHERE key like '{key}'".format(key=tableName),tableName)
         if tableName == "group":
             tableName = "groups"
         raws = getName(taglist,1).split(",")
         if len(taglist) == 1:
-            comment = "SELECT name from reclass WHERE raw like '%{raw}%'".format(raw=taglist[0])
+            comment = "SELECT name from reclass WHERE raw like '{raw}'".format(raw=taglist[0])
             Newtag = findName(c, comment, taglist[0])
-            Newtag = Newtag.replace(" ", "")
             tranTag.append(Newtag)
             continue
         for raw in raws:
-            comment = "SELECT name from {table} WHERE raw like '%{raw}%'".format(table=tableName, raw=raw)
+            comment = "SELECT name from {table} WHERE raw like '{raw}'".format(table=tableName, raw=raw)
             Newtag = findName(c,comment,raw)
-            Newtag = Newtag.replace(" ","")
             if tableName == "groups":
                 gmetadata.publisher = Newtag
             elif tableName == "artist":
@@ -77,6 +74,7 @@ def traslate(sqlitUrl,gmetadata):
                 Newtag = nameSpace + ":" + Newtag
                 tranTag.append(Newtag)
     gmetadata.tags = tranTag
+    conn.close()
 
 
 def to_metadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{{
@@ -252,7 +250,7 @@ class Ehentai(Source):
         q_dict = {'f_doujinshi': 1, 'f_manga': 1, 'f_artistcg': 1, 'f_gamecg': 1, 'f_western': 1, 'f_non-h': 1,
                   'f_imageset': 1, 'f_cosplay': 1, 'f_asianporn': 1, 'f_misc': 1, 'f_search': q,
                   'f_apply': 'Apply+Filter',
-                  'advsearch': 1, 'f_sname': 'on', 'f_sh': 'on', 'f_srdd': 2}
+                  'advsearch': 1, 'f_sname': 'on','f_sh': 'on', 'f_srdd': 2}
         if is_exhentai is False:
             url = EHentai_SEARCH_URL + urlencode(q_dict)
         else:
@@ -269,6 +267,7 @@ class Ehentai(Source):
         if not results:
             log.exception('Failed to get gallery_id and gallery_token!')
             return None
+        #print("获取的信息：",results)
         gidlist = []
         for r in results:
             gidlist.append(list(r))
@@ -354,7 +353,6 @@ class Ehentai(Source):
     def identify(self, log, result_queue, abort, title=None, authors=None, identifiers={}, timeout=30):  # {{{
 
         is_exhentai = self.ExHentai_Status
-        # print("里站状态",is_exhentai)
         query = self.create_query(log, title=title, authors=authors, identifiers=identifiers, is_exhentai=is_exhentai)
         if not query:
             log.error('Insufficient metadata to construct query')
@@ -404,9 +402,13 @@ if __name__ == '__main__': # tests {{{
     test_identify_plugin(Ehentai.name,
         [
             (
-                {'title': 'キリト君の白くべたつくなにか', 'authors':['しらたま肉球']},
+                {'title': 'キリト君の白くべたつくなにか', 'authors': ['しらたま肉球']},
                 [title_test('キリト君の白くべたつくなにか', exact=False)]
-            ),
+            )
+    ])
+# }}}
+
+'''
             (
                 {'title':'拘束する部活動 (僕は友達が少ない)','authors':['すもも堂 (すももEX) ','有条色狼']},
                 [title_test('拘束する部活動', exact=False)]
@@ -415,5 +417,4 @@ if __name__ == '__main__': # tests {{{
                 {'title':'桜の蜜','authors':['劇毒少女 (ke-ta)']},
                 [title_test('桜の蜜', exact=False)]
             )
-    ])
-# }}}
+'''
