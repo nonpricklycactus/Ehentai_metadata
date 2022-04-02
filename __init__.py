@@ -156,7 +156,7 @@ def to_metadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{
 class Ehentai(Source):
     name = 'E-hentai Galleries'
     author = 'nonpricklycactus'
-    version = (2, 2, 0)
+    version = (2, 2, 1)
     minimum_calibre_version = (1, 0, 0)
 
     description = _('Download metadata and cover from e-hentai.org.'
@@ -177,6 +177,8 @@ class Ehentai(Source):
                _('If Use Exhentai is True, the plugin will search metadata on exhentai.')),
         Option('Chinese_Exhentai', 'bool', False, _('Chinese Exhentai'),
                _('If Use Chinese Exhentai is True, This plugin will translate metadata into Chinese.')),
+        Option('Chinese_Tags', 'bool', False, _('Chinese Tags'),
+               _('如果勾选Chinese_Tags，那么将只会搜索中文本子')),
         Option('ipb_member_id', 'string', None, _('ipb_member_id'),
                _('If Use Exhentai is True, please input your cookies.')),
         Option('ipb_pass_hash', 'string', None, _('ipb_pass_hash'),
@@ -200,6 +202,7 @@ class Ehentai(Source):
 
     def config_chinese(self):
         self.Chinese_Status = self.prefs['Chinese_Exhentai']
+        self.Chinese_Tags = self.prefs['Chinese_Tags']
         EhTagTranslation_db = self.prefs['EhTagTranslation_db']
         if self.Chinese_Status is True:
             self.sqlitUrl = EhTagTranslation_db + "\EhTagTranslation.db"
@@ -225,7 +228,7 @@ class Ehentai(Source):
 
     # }}}
 
-    def create_query(self, log, title=None, authors=None, identifiers={}, is_exhentai=False):  # {{{
+    def create_query(self, log, title=None, authors=None , identifiers={}, is_exhentai=False, chinese_tags = False):  # {{{
 
         EHentai_SEARCH_URL = 'https://e-hentai.org/?'
         ExHentai_SEARCH_URL = 'https://exhentai.org/?'
@@ -242,7 +245,11 @@ class Ehentai(Source):
             author_token = list(self.get_author_tokens(authors, only_first_author=True))
             if author_token:
                 q = q + (' ' if q != '' else '') + build_term('author', author_token)
+
+        if chinese_tags:
+            q = q + " " + "chinese"
         q = q.strip()
+        #print("查询条码：", q)
         if isinstance(q, str):
             q = q.encode('utf-8')
         if not q:
@@ -255,6 +262,7 @@ class Ehentai(Source):
             url = EHentai_SEARCH_URL + urlencode(q_dict)
         else:
             url = ExHentai_SEARCH_URL + urlencode(q_dict)
+       # print("查询连接：",url)
         return url
 
     # }}}
@@ -269,17 +277,22 @@ class Ehentai(Source):
             return None
         #print("获取的信息：",results)
         gidlist = []
-        i = 0
         for r in results:
-            if i>3:
-                break
             gidlist.append(list(r))
-            i=i+1
         return gidlist
 
     # }}}
 
-    def get_all_details(self, gidlist, log, abort, result_queue, timeout):  # {{{
+    def isSubsequence(self,s: str, t: str) -> bool:
+        n, m = len(s), len(t)
+        i = j = 0
+        while i < n and j < m:
+            if s[i] == t[j]:
+                i += 1
+            j += 1
+        return i == n
+
+    def get_all_details(self, gidlist, log, abort, result_queue, timeout,title):  # {{{
 
         EHentai_API_url = 'https://api.e-hentai.org/api.php'
         br = self.browser
@@ -291,6 +304,12 @@ class Ehentai(Source):
             log.exception('Failed to make api request.', e)
             return
         gmetadatas = json.loads(raw)['gmetadata']
+        Newgmetadatas = []
+        for gmetadata in gmetadatas:
+            if self.isSubsequence(title,gmetadata['title_jpn']):
+                Newgmetadatas.append(gmetadata)
+        if len(Newgmetadatas)>0:
+            gmetadatas = Newgmetadatas
         for relevance, gmetadata in enumerate(gmetadatas):
             try:
                 ans = to_metadata(log, gmetadata, self.ExHentai_Status,self.Chinese_Status,self.sqlitUrl)
@@ -357,7 +376,8 @@ class Ehentai(Source):
     def identify(self, log, result_queue, abort, title=None, authors=None, identifiers={}, timeout=30):  # {{{
 
         is_exhentai = self.ExHentai_Status
-        query = self.create_query(log, title=title, authors=authors, identifiers=identifiers, is_exhentai=is_exhentai)
+        chinese_tags = self.Chinese_Tags
+        query = self.create_query(log, title=title, authors=authors, identifiers=identifiers, is_exhentai=is_exhentai, chinese_tags = chinese_tags)
         if not query:
             log.error('Insufficient metadata to construct query')
             return
@@ -389,7 +409,7 @@ class Ehentai(Source):
         if not gidlist:
             log.error('No result found.\n', 'query: %s' % query)
             return
-        self.get_all_details(gidlist=gidlist, log=log, abort=abort, result_queue=result_queue, timeout=timeout)
+        self.get_all_details(gidlist=gidlist, log=log, abort=abort, result_queue=result_queue, timeout=timeout, title = title)
         # }}}
 
 
