@@ -41,7 +41,13 @@ The Database from EhTagTranslation [Database](https://github.com/EhTagTranslatio
 
 **Version History:**
 
-**Version 2.2.0** -  31 March 2022
+**Version 2.2.1** - 2 April 2022
+
+- Add checkbox Chinese Tags
+- After selecting Chinese Tags, the plug-in will search only Chinese books to obtain tag data, reducing the acquisition time
+
+
+**Version 2.2.0** - 31 March 2022
 
 - Added whether to translate
 
