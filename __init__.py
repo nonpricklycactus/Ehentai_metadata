@@ -156,7 +156,7 @@ def to_metadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{
 class Ehentai(Source):
     name = 'E-hentai Galleries'
     author = 'nonpricklycactus'
-    version = (2, 2, 1)
+    version = (2, 2, 2)
     minimum_calibre_version = (1, 0, 0)
 
     description = _('Download metadata and cover from e-hentai.org.'
