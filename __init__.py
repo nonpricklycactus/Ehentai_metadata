@@ -179,14 +179,20 @@ class Ehentai(Source):
                _('If Use Chinese Exhentai is True, This plugin will translate metadata into Chinese.')),
         Option('Chinese_Tags', 'bool', False, _('Chinese Tags'),
                _('如果勾选Chinese_Tags，那么将只会搜索中文本子')),
+        Option('Accurate_Label', 'bool', False, _('Accurate_Label'),
+               _('如果勾选Accurate_Label，那么将只会获取给定accurate_url页面的tag')),
         Option('ipb_member_id', 'string', None, _('ipb_member_id'),
                _('If Use Exhentai is True, please input your cookies.')),
         Option('ipb_pass_hash', 'string', None, _('ipb_pass_hash'),
                _('If Use Exhentai is True, please input your cookies.')),
         Option('igneous', 'string', None, _('igneous'),
                _('If Use Exhentai is True, please input your cookies.')),
+        Option('accurate_url', 'string', None, _('accurate_url'),
+               _('获取给定页面tag所在url')),
         Option('EhTagTranslation_db', 'string', None, _('EhTagTranslation_db'),
-               _('Translate the location of the database files(翻译数据库文件所在位置)'))
+               _('Translate the location of the database files(翻译数据库文件所在位置)')
+
+               )
     )
 
     config_help_message = ('<p>' + _('To Download Metadata from exhentai.org you must sign up'
@@ -197,8 +203,14 @@ class Ehentai(Source):
         Source.__init__(self, *args, **kwargs)
         self.config_exhentai()
         self.config_chinese()
-
+        self.config_tags()
     # }}}
+
+    def config_tags(self):
+        self.Accurate_Label = self.prefs['Accurate_Label']
+        self.accurate_url = self.prefs['accurate_url']
+        return
+
 
     def config_chinese(self):
         self.Chinese_Status = self.prefs['Chinese_Exhentai']
@@ -377,6 +389,9 @@ class Ehentai(Source):
 
         is_exhentai = self.ExHentai_Status
         chinese_tags = self.Chinese_Tags
+        accurate_label = self.Accurate_Label
+        accurate_url = self.accurate_url
+        #获取将查询信息进行拼接
         query = self.create_query(log, title=title, authors=authors, identifiers=identifiers, is_exhentai=is_exhentai, chinese_tags = chinese_tags)
         if not query:
             log.error('Insufficient metadata to construct query')
@@ -387,25 +402,43 @@ class Ehentai(Source):
         if is_exhentai is True:
             for cookie in self.ExHentai_Cookies:
                 br.set_cookie(name=cookie['name'], value=cookie['value'], domain=cookie['domain'], path=cookie['path'])
-        try:
-            _raw = br.open_novisit(query, timeout=timeout)
-            raw = _raw.read()
-            # print("页面类型：",type(raw))
-            raw = raw.decode('unicode_escape')
-        except Exception as e:
-            log.exception('Failed to make identify query: %r' % query)
-            return as_unicode(e)
-        if not raw and identifiers and title and authors and not abort.is_set():
-            return self.identify(log, result_queue, abort, title=title, authors=authors, timeout=timeout)
-        if is_exhentai is True:
+
+        if not accurate_label:
             try:
-                'https://exhentai.org/' in raw
+                #获取查询结果页面的数据
+                _raw = br.open_novisit(query, timeout=timeout)
+                raw = _raw.read()
+                # print("页面类型：",type(raw))
+                raw = raw.decode('unicode_escape')
             except Exception as e:
-                log.error('The cookies for ExHentai is invalid.')
-                log.error('Exhentai cookies:')
-                log.error(self.ExHentai_Cookies)
-                return
-        gidlist = self.get_gallery_info(log, raw)
+                log.exception('Failed to make identify query: %r' % query)
+                return as_unicode(e)
+            if not raw and identifiers and title and authors and not abort.is_set():
+                return self.identify(log, result_queue, abort, title=title, authors=authors, timeout=timeout)
+            if is_exhentai is True:
+                try:
+                    'https://exhentai.org/' in raw
+                except Exception as e:
+                    log.error('The cookies for ExHentai is invalid.')
+                    log.error('Exhentai cookies:')
+                    log.error(self.ExHentai_Cookies)
+                    return
+
+        #得到查询页面结果信息
+        gidlist = []
+        if accurate_label:
+            pattern = re.compile(
+                r'https:\/\/(?:e-hentai\.org|exhentai\.org)\/g\/(?P<gallery_id>\d+)/(?P<gallery_token>\w+)/')
+            results = re.findall(pattern, accurate_url)
+            if not results:
+                log.exception('Failed to get gallery_id and gallery_token!')
+                return None
+            # print("获取的信息：",results)
+            for r in results:
+                gidlist.append(list(r))
+        else:
+            gidlist = self.get_gallery_info(log, raw)
+
         if not gidlist:
             log.error('No result found.\n', 'query: %s' % query)
             return
