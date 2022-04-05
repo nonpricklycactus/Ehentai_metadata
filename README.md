@@ -41,6 +41,12 @@ The Database from EhTagTranslation [Database](https://github.com/EhTagTranslatio
 
 **Version History:**
 
+**Version 2.2.3** - 5 April 2022
+
+- Change the accurate_URL input to pop-up box input
+- After selecting Accurate_Label, the plug-in will be from the input e stand accurate_url:https://exhentai.org/g/21843\*\*/175ff141\*\*/ to get the label data
+
+
 **Version 2.2.2** - 3 April 2022
 
 - Add checkbox Accurate_Label

@@ -39,6 +39,13 @@
 
 **版本历史**
 
+**Version 2.2.3** - 2022-4-5
+
+- 将accurate_url的输入改为弹出框输入
+- 选择Accurate_Label后插件将会从输入的e站accurate_url：https://exhentai.org/g/21843\*\*/175ff141\*\*/来获取标签数据
+
+
+
 **Version 2.2.2** - 2022-4-3
 
 - 增加复选框Accurate_Label
