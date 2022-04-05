@@ -12,9 +12,11 @@ from calibre.ebooks.metadata.book.base import Metadata
 from calibre import as_unicode
 
 import re
+import sys
 import json
 import sqlite3
 from urllib.parse import urlencode
+from PyQt5 import QtCore,QtWidgets,QtGui
 
 
 def getName(list,i):
@@ -152,11 +154,48 @@ def to_metadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{
     return mi
     # }}}
 
+class getUrlUI():
+
+    def setUI(self,w):
+        #设置工具窗口的大小，前两个参数决定窗口的位置
+        w.setGeometry(300,300,500,100)
+        #设置工具窗口的标题
+        w.setWindowTitle("精确获取标签")
+        #设置窗口的图标
+        #w.setWindowIcon(QtGui.QIcon('x.jpg'))
+
+        # 添加文本标签
+        self.label = QtWidgets.QLabel(w)
+        # 设置标签的左边距，上边距，宽，高
+        self.label.setGeometry(QtCore.QRect(60, 20, 150, 45))
+        # 设置文本标签的字体和大小，粗细等
+        self.label.setFont(QtGui.QFont("Roman times",20))
+        self.label.setText("url:")
+        #添加设置一个文本框
+        self.text = QtWidgets.QLineEdit(w)
+        #调整文本框的位置大小
+        self.text.setGeometry(QtCore.QRect(150,30,180,30))
+        #添加提交按钮和单击事件
+        self.btn = QtWidgets.QPushButton(w)
+        #设置按钮的位置大小
+        self.btn.setGeometry(QtCore.QRect(150,140,70,30))
+        #设置按钮的位置，x坐标,y坐标
+        self.btn.move(400,30)
+        self.btn.setText("提交")
+        #为按钮添加单击事件
+        self.btn.clicked.connect(self.getText)
+        # 按钮点下后自动关闭当前界面
+        self.btn.clicked.connect(w.close)
+        w.show()
+
+    def getText(self):
+        global accurate_url
+        accurate_url = self.text.text()
 
 class Ehentai(Source):
     name = 'E-hentai Galleries'
     author = 'nonpricklycactus'
-    version = (2, 2, 2)
+    version = (2, 2, 3)
     minimum_calibre_version = (1, 0, 0)
 
     description = _('Download metadata and cover from e-hentai.org.'
@@ -187,8 +226,6 @@ class Ehentai(Source):
                _('If Use Exhentai is True, please input your cookies.')),
         Option('igneous', 'string', None, _('igneous'),
                _('If Use Exhentai is True, please input your cookies.')),
-        Option('accurate_url', 'string', None, _('accurate_url'),
-               _('获取给定页面tag所在url')),
         Option('EhTagTranslation_db', 'string', None, _('EhTagTranslation_db'),
                _('Translate the location of the database files(翻译数据库文件所在位置)')
 
@@ -208,7 +245,6 @@ class Ehentai(Source):
 
     def config_tags(self):
         self.Accurate_Label = self.prefs['Accurate_Label']
-        self.accurate_url = self.prefs['accurate_url']
         return
 
 
@@ -385,12 +421,13 @@ class Ehentai(Source):
 
     # }}}
 
+
     def identify(self, log, result_queue, abort, title=None, authors=None, identifiers={}, timeout=30):  # {{{
 
         is_exhentai = self.ExHentai_Status
         chinese_tags = self.Chinese_Tags
         accurate_label = self.Accurate_Label
-        accurate_url = self.accurate_url
+        global accurate_url
         #获取将查询信息进行拼接
         query = self.create_query(log, title=title, authors=authors, identifiers=identifiers, is_exhentai=is_exhentai, chinese_tags = chinese_tags)
         if not query:
@@ -402,6 +439,8 @@ class Ehentai(Source):
         if is_exhentai is True:
             for cookie in self.ExHentai_Cookies:
                 br.set_cookie(name=cookie['name'], value=cookie['value'], domain=cookie['domain'], path=cookie['path'])
+
+
 
         if not accurate_label:
             try:
@@ -426,6 +465,15 @@ class Ehentai(Source):
 
         #得到查询页面结果信息
         gidlist = []
+        if accurate_label:
+            # 创建应用程序和对象
+            app = QtWidgets.QApplication(sys.argv)
+            w = QtWidgets.QWidget()
+            ui = getUrlUI()
+            ui.setUI(w)
+            app.exec_()
+            #print("获取的数据：", accurate_url)
+
         if accurate_label:
             pattern = re.compile(
                 r'https:\/\/(?:e-hentai\.org|exhentai\.org)\/g\/(?P<gallery_id>\d+)/(?P<gallery_token>\w+)/')
