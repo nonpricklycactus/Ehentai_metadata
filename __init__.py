@@ -15,6 +15,7 @@ import re
 import sys
 import json
 import sqlite3
+import html
 from urllib.parse import urlencode
 from PyQt5 import QtCore,QtWidgets,QtGui
 
@@ -310,7 +311,7 @@ class Ehentai(Source):
             url = EHentai_SEARCH_URL + urlencode(q_dict)
         else:
             url = ExHentai_SEARCH_URL + urlencode(q_dict)
-       # print("查询连接：",url)
+        #print("查询连接：",url)
         return url
 
     # }}}
@@ -351,9 +352,11 @@ class Ehentai(Source):
         except Exception as e:
             log.exception('Failed to make api request.', e)
             return
+
         gmetadatas = json.loads(raw)['gmetadata']
         Newgmetadatas = []
         for gmetadata in gmetadatas:
+            gmetadata['title_jpn'] = html.unescape(gmetadata['title_jpn'])
             if self.isSubsequence(title,gmetadata['title_jpn']):
                 Newgmetadatas.append(gmetadata)
         if len(Newgmetadatas)>0:
@@ -507,13 +510,18 @@ if __name__ == '__main__': # tests {{{
     test_identify_plugin(Ehentai.name,
         [
             (
-                {'title': 'キリト君の白くべたつくなにか', 'authors': ['しらたま肉球']},
-                [title_test('キリト君の白くべたつくなにか', exact=False)]
+                {'title': '(C72) [Kabayakiya (Unagimaru)] L&G - Ladies & Gentlemen (CODE GEASS_ Lelouch of the Rebellion) [Chinese] [飞雪汉化组]', 'authors': ['Unknown']},
+                [title_test('L&G - Ladies & Gentlemen', exact=False)]
             )
     ])
 # }}}
 
 '''
+(C72) [Kabayakiya (Unagimaru)] L&G - Ladies & Gentlemen (CODE GEASS_ Lelouch of the Rebellion) [Chinese] [飞雪汉化组]
+            (
+                {'title': 'キリト君の白くべたつくなにか', 'authors': ['しらたま肉球']},
+                [title_test('キリト君の白くべたつくなにか', exact=False)]
+            )
             (
                 {'title':'拘束する部活動 (僕は友達が少ない)','authors':['すもも堂 (すももEX) ','有条色狼']},
                 [title_test('拘束する部活動', exact=False)]
