@@ -195,7 +195,7 @@ def toMetadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{{
 
     mi = Metadata(title_, authors)
     mi.identifiers = {'ehentai': '%s_%s_%d' % (str(gid), str(token), int(ExHentai_Status))}
-    mi.publisher = publisher if publisher else None
+    mi.publisher = publisher if publisher else 'Unknown'
 
     # tags and languages
     tags_ : Set[str] = set()
