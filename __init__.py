@@ -197,26 +197,17 @@ def toMetadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{{
     mi.identifiers = {'ehentai': '%s_%s_%d' % (str(gid), str(token), int(ExHentai_Status))}
     mi.publisher = publisher if publisher else None
 
-    # Tags
+    # tags and languages
     tags_ : Set[str] = set()
+    languages: Set[str] = set()
     for tag in tags:
+        tags_.add(tag)
         if re.match('language', tag):
-            # FIXME: a gallary might have multiple languages
             tag_ = re.sub('language:', '', tag)
             if tag_ != 'translated':
-                mi.language = tag_
-            else:
-                tags_.add(tag)
-                #         elif re.match('parody|group|character|artist', tag):
-                #             log('drop tag %s' % tag)
-                #             continue
-        elif not ':' in tag:
-            log('drop tag %s' % tag)
-            continue
+                languages.add(tag_)
         elif re.match('parody', tag):
             is_parody = True 
-        else:
-            tags_.add(tag)
 
     tags_.add('category:%s' % category)
 
@@ -232,11 +223,13 @@ def toMetadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{{
             tags_.add('other:%s' % OTHER_DICT[addtion])
         elif addtion in LANGUAGE_DICT:
             tags_.add('language:%s' % LANGUAGE_DICT[addtion])
+            languages.add(LANGUAGE_DICT[addtion])
         else:
             # assume addtion fields that aren't languages nor other tags are translators
             tags_.add('translator:%s' % addtion)
 
     mi.tags = list(tags_)
+    mi.languages = list(languages)
 
     # rating
     mi.rating = float(rating)
