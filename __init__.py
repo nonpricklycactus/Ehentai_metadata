@@ -128,7 +128,7 @@ def to_metadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{
             if tag_ != 'translated':
                 mi.language = tag_
             else:
-                tags_.append(tag_)
+                tags_.append(tag)
                 #         elif re.match('parody|group|character|artist', tag):
                 #             log('drop tag %s' % tag)
                 #             continue
