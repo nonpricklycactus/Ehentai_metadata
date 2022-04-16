@@ -2,6 +2,7 @@
 # vim:fileencoding=UTF-8:ts=4:sw=4:sta:et:sts=4:ai
 from __future__ import (unicode_literals, division, absolute_import,
                         print_function)
+from typing import Dict, List, Set, Union
 
 __license__   = 'GPL v3'
 __copyright__ = '2021, nonpricklycactus <https://github.com/nonpricklycactus/Ehentai_metadata>'
@@ -18,6 +19,31 @@ import sqlite3
 import html
 from urllib.parse import urlencode
 from PyQt5 import QtCore,QtWidgets,QtGui
+
+# TODO: fill the LANGUAGE_LIST
+LANGUAGE_DICT = {
+    'Chinese'   : 'chinese',
+    '中国語'    : 'chinese',
+    '中国翻訳'  : 'chinese',
+    '中国語翻訳': 'chinese',
+    'Japanese'  : 'japanese',
+    '日語'      : 'japanese',
+    'English'   : 'english',
+    'Spanish'   : 'spanish',
+    'French'    : 'french',
+    'Russian'   : 'russian',
+}
+
+# TODO: fill the OTHER_LIST
+OTHER_DICT = {
+    'Digital'   : 'digital',
+    'DL版'      : 'digital',
+    'Full Color': 'full color',
+    '全彩'      : 'full color',
+    'Uncensored': 'uncensored',
+    'Decensored': 'uncensored',
+    '無修正'    : 'uncensored',
+}
 
 
 def getName(list,i):
@@ -80,7 +106,69 @@ def traslate(sqlitUrl,gmetadata):
     conn.close()
 
 
-def to_metadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{{
+class FieldFromTitle:
+    def __init__(
+        self,
+        title: str,
+        author: Union[str, None],
+        publisher: Union[str, None],
+        magazine_or_parody: Union[str, None],
+        addtions: List[str]
+    ):
+        self.publisher              = publisher
+        self.title                  = title
+        self.author                 = author
+        self.magazine_or_parody     = magazine_or_parody
+        self.addtions               = addtions
+        
+def optional(pattern : str):
+    return '(?:' + pattern + ')?'
+
+def extractFieldFromTitle(title: str, log):
+    pattern = re.compile(
+          r'^\s*'                                               # match spaces                  (optional)
+        + optional(r'\((?P<publisher>[^\(\)]+)\)')              # match publisher, such as C99  (optional)
+        + r'\s*'                                                # match spaces                  (optional)
+        + optional(r'\[(?P<author>[^\[\]]+)\]')                 # match author                  (optional)
+        + r'\s*'                                                # match spaces                  (optional)
+        + r'(?P<title>[^\[\]\(\)]+)'                            # match title                   (must, need strip)
+        + r'\s*'                                                # match spaces                  (optional)
+        + optional(r'\((?P<magazine_or_parody>[^\(\)]+)\)')     # match magazine_or_parody      (optional)
+        + r'\s*'                                                # match spaces                  (optional)
+        + optional(r'\[(?P<addtional1>[^\[\]]+)\]')             # match addtional_field_1       (optional)
+        + r'\s*'                                                # match spaces                  (optional)
+        + optional(r'\[(?P<addtional2>[^\[\]]+)\]')             # match addtional_field_2       (optional)
+        + r'\s*'                                                # match spaces                  (optional)
+        + optional(r'\[(?P<addtional3>[^\[\]]+)\]')             # match addtional_field_3       (optional)
+    )
+
+    match = re.match(pattern, title)
+
+    if match:
+        publisher = match.group('publisher')
+        author = match.group('author')
+        re_title = match.group('title').strip()
+        magazine_or_parody = match.group('magazine_or_parody')
+        addtions_with_none: List[Union[str, None]] = [match.group('addtional1'), match.group('addtional2'), match.group('addtional3')]
+        addtions_without_none = [x for x in addtions_with_none if isinstance(x, str)]
+    else:
+        publisher = None
+        author = None
+        re_title = title
+        magazine_or_parody = None
+        addtions_without_none = []
+        log.exception('Title match failed. Title is %s' % title)
+
+    return FieldFromTitle(
+        publisher           = publisher,
+        title               = re_title,
+        author              = author,
+        magazine_or_parody  = magazine_or_parody,
+        addtions            = addtions_without_none,
+    )
+
+
+def toMetadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{{
     title = gmetadata['title']
     title_jpn = gmetadata['title_jpn']
     tags = gmetadata['tags']
@@ -89,57 +177,66 @@ def to_metadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{
     gid = gmetadata['gid']
     token = gmetadata['token']
     thumb = gmetadata['thumb']
+    uploader = gmetadata['uploader']
+
+    # determine if magazine_or_parody is magazine or parody
+    is_parody = False
+    has_jpn_title = bool(title_jpn)
 
     # title
-    if title_jpn:
-        raw_title = title_jpn
-    else:
-        raw_title = title
-    pat1 = re.compile(
-        r'(?P<comments>.*?\[(?P<author>(?:(?!汉化|漢化)[^\[\]])*)\](?:\s*(?:\[[^\(\)]+\]|\([^\[\]\(\)]+\))\s*)*(?P<title>[^\[\]\(\)]+).*)')
-    if re.findall(pat1, raw_title):
-        m = re.search(pat1, raw_title)
-        title_ = m.group('title').strip()
-        author = m.group('author').strip()
-    else:
-        title_ = raw_title.strip()
-        author = 'Unknown'
-        log.exception('Title match failed. Title is %s' % raw_title)
+    field_from_title = extractFieldFromTitle(title_jpn if title_jpn else title, log)
+    title_ = field_from_title.title
+    publisher = field_from_title.publisher
+    author = field_from_title.author if field_from_title.author else 'Unknown'
+    magazine_or_parody = field_from_title.magazine_or_parody
+    addtional = field_from_title.addtions
 
     authors = [(author)]
 
     mi = Metadata(title_, authors)
     mi.identifiers = {'ehentai': '%s_%s_%d' % (str(gid), str(token), int(ExHentai_Status))}
-
-    # publisher
-    pat2 = re.compile(r'^\(([^\[\]\(\)]*)\)')
-    if re.findall(pat2, raw_title):
-        publisher = re.search(pat2, raw_title).group(1).strip()
-        mi.publisher = publisher
-    else:
-        mi.publisher = 'Unknown'
-        log.exception('Not Found publisher.')
+    mi.publisher = publisher if publisher else None
 
     # Tags
-    tags_ = []
+    tags_ : Set[str] = set()
     for tag in tags:
         if re.match('language', tag):
+            # FIXME: a gallary might have multiple languages
             tag_ = re.sub('language:', '', tag)
             if tag_ != 'translated':
                 mi.language = tag_
             else:
-                tags_.append(tag)
+                tags_.add(tag)
                 #         elif re.match('parody|group|character|artist', tag):
                 #             log('drop tag %s' % tag)
                 #             continue
         elif not ':' in tag:
             log('drop tag %s' % tag)
             continue
+        elif re.match('parody', tag):
+            is_parody = True 
         else:
-            tags_.append(tag)
+            tags_.add(tag)
 
-    tags_.append(category)
-    mi.tags = tags_
+    tags_.add('category:%s' % category)
+
+    # add magazine to tag if it has magazine attribute
+    if not is_parody and magazine_or_parody:
+        tags_.add('manazine:%s' % magazine_or_parody)
+
+    # add uploader to tag
+    tags_.add('uploader:%s' % uploader)
+
+    for addtion in extractFieldFromTitle(title, log).addtions + (addtional if has_jpn_title else []):
+        if addtion in OTHER_DICT:
+            tags_.add('other:%s' % OTHER_DICT[addtion])
+        elif addtion in LANGUAGE_DICT:
+            tags_.add('language:%s' % LANGUAGE_DICT[addtion])
+        else:
+            # assume addtion fields that aren't languages nor other tags are translators
+            tags_.add('translator:%s' % addtion)
+
+    mi.tags = list(tags_)
 
     # rating
     mi.rating = float(rating)
@@ -363,7 +460,7 @@ class Ehentai(Source):
             gmetadatas = Newgmetadatas
         for relevance, gmetadata in enumerate(gmetadatas):
             try:
-                ans = to_metadata(log, gmetadata, self.ExHentai_Status,self.Chinese_Status,self.sqlitUrl)
+                ans = toMetadata(log, gmetadata, self.ExHentai_Status,self.Chinese_Status,self.sqlitUrl)
                 if isinstance(ans, Metadata):
                     ans.source_relevance = relevance
                     db = ans.identifiers['ehentai']
