@@ -41,6 +41,13 @@ The Database from EhTagTranslation [Database](https://github.com/EhTagTranslatio
 
 **Version History:**
 
+**Version 2.2.4** - 17 April 2022
+
+- Modify the regular expression to get information such as the author from the title
+- Increased the type of meta information parsed
+- Handle manga in multiple languages correctly
+
+
 **Version 2.2.3** - 5 April 2022
 
 - Change the accurate_URL input to pop-up box input
