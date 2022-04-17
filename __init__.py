@@ -102,6 +102,7 @@ def traslate(sqlitUrl,gmetadata):
             else:
                 Newtag = nameSpace + ":" + Newtag
                 tranTag.append(Newtag)
+            print(raw)
     gmetadata.tags = tranTag
     conn.close()
 
@@ -225,6 +226,9 @@ def toMetadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{{
             tags_.add('language:%s' % LANGUAGE_DICT[addtion])
             languages.add(LANGUAGE_DICT[addtion])
         else:
+            dataPattern = re.compile(u'^\d{4}[-|年]\d{1,2}')
+            if dataPattern.search(addtion):
+                continue
             # assume addtion fields that aren't languages nor other tags are translators
             tags_.add('translator:%s' % addtion)
 
@@ -286,11 +290,11 @@ class getUrlUI():
 class Ehentai(Source):
     name = 'E-hentai Galleries'
     author = 'nonpricklycactus'
-    version = (2, 2, 3)
+    version = (2, 2, 4)
     minimum_calibre_version = (1, 0, 0)
 
     description = _('Download metadata and cover from e-hentai.org.'
-                    'Useful only for doujinshi.')
+                    'Useful only for nonpricklycactus.')
 
     capabilities = frozenset(['identify', 'cover'])
     touched_fields = frozenset(['title', 'authors', 'tags', 'rating', 'publisher', 'identifier:ehentai'])
@@ -600,8 +604,8 @@ if __name__ == '__main__': # tests {{{
     test_identify_plugin(Ehentai.name,
         [
             (
-                {'title': '(C72) [Kabayakiya (Unagimaru)] L&G - Ladies & Gentlemen (CODE GEASS_ Lelouch of the Rebellion) [Chinese] [飞雪汉化组]', 'authors': ['Unknown']},
-                [title_test('L&G - Ladies & Gentlemen', exact=False)]
+                {'title': 'キリト君の白くべたつくなにか', 'authors': ['しらたま肉球']},
+                [title_test('キリト君の白くべたつくなにか', exact=False)]
             )
     ])
 # }}}
