@@ -102,7 +102,7 @@ def traslate(sqlitUrl,gmetadata):
             else:
                 Newtag = nameSpace + ":" + Newtag
                 tranTag.append(Newtag)
-            print(raw)
+
     gmetadata.tags = tranTag
     conn.close()
 
@@ -290,7 +290,7 @@ class getUrlUI():
 class Ehentai(Source):
     name = 'E-hentai Galleries'
     author = 'nonpricklycactus'
-    version = (2, 2, 4)
+    version = (2, 2, 5)
     minimum_calibre_version = (1, 0, 0)
 
     description = _('Download metadata and cover from e-hentai.org.'
@@ -315,12 +315,16 @@ class Ehentai(Source):
                _('如果勾选Chinese_Tags，那么将只会搜索中文本子')),
         Option('Accurate_Label', 'bool', False, _('Accurate_Label'),
                _('如果勾选Accurate_Label，那么将只会获取给定accurate_url页面的tag')),
+        Option('Use_Proxy','bool',False,_('Use Proxy'),
+               _('If Use Proxy is True, the plugin will search metadata by proxy.')),
         Option('ipb_member_id', 'string', None, _('ipb_member_id'),
                _('If Use Exhentai is True, please input your cookies.')),
         Option('ipb_pass_hash', 'string', None, _('ipb_pass_hash'),
                _('If Use Exhentai is True, please input your cookies.')),
         Option('igneous', 'string', None, _('igneous'),
                _('If Use Exhentai is True, please input your cookies.')),
+        Option('Proxylink','string',None,_('Proxylink'), # 127.0.0.1:8080
+               _('If Use Proxy is True, please input your proxy. example: username:password@proxy.com:8080 or http(s)Proxy')),
         Option('EhTagTranslation_db', 'string', None, _('EhTagTranslation_db'),
                _('Translate the location of the database files(翻译数据库文件所在位置)')
 
@@ -336,11 +340,20 @@ class Ehentai(Source):
         self.config_exhentai()
         self.config_chinese()
         self.config_tags()
+        self.config_proxy()
     # }}}
 
     def config_tags(self):
         self.Accurate_Label = self.prefs['Accurate_Label']
         return
+
+    def config_proxy(self): # {{{
+
+        Proxy_Status = self.prefs['Use_Proxy']
+        Proxy = {'http': self.prefs['Proxylink'], 'https': self.prefs['Proxylink']}
+        self.Proxy_Status = Proxy_Status
+        self.Proxy = Proxy
+    # }}}
 
 
     def config_chinese(self):
@@ -439,8 +452,15 @@ class Ehentai(Source):
 
         EHentai_API_url = 'https://api.e-hentai.org/api.php'
         br = self.browser
+        use_proxy = self.Proxy_Status
+        proxy = self.Proxy
+
         data = {"method": "gdata", "gidlist": gidlist, "namespace": 1}
         data = json.dumps(data)
+
+        if use_proxy is True:
+            br.set_proxies(proxies=proxy,proxy_bypass=lambda hostname: False)
+
         try:
             raw = br.open_novisit(EHentai_API_url, data=data, timeout=timeout).read()
         except Exception as e:
@@ -524,19 +544,27 @@ class Ehentai(Source):
         is_exhentai = self.ExHentai_Status
         chinese_tags = self.Chinese_Tags
         accurate_label = self.Accurate_Label
+        use_proxy = self.Proxy_Status
+        proxy = self.Proxy
+        print(proxy)
         global accurate_url
+
         #获取将查询信息进行拼接
         query = self.create_query(log, title=title, authors=authors, identifiers=identifiers, is_exhentai=is_exhentai, chinese_tags = chinese_tags)
         if not query:
             log.error('Insufficient metadata to construct query')
             return
+
         br = self.browser
+        if use_proxy is True:
+            br.set_proxies(proxies=proxy,proxy_bypass=lambda hostname: False)
+
         br.addheaders = [('User-agent',
                           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36')]
+
         if is_exhentai is True:
             for cookie in self.ExHentai_Cookies:
                 br.set_cookie(name=cookie['name'], value=cookie['value'], domain=cookie['domain'], path=cookie['path'])
-
 
 
         if not accurate_label:
@@ -589,9 +617,6 @@ class Ehentai(Source):
             return
         self.get_all_details(gidlist=gidlist, log=log, abort=abort, result_queue=result_queue, timeout=timeout, title = title)
         # }}}
-
-
-
 
 
 
