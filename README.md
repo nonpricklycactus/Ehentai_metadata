@@ -41,6 +41,11 @@ The Database from EhTagTranslation [Database](https://github.com/EhTagTranslatio
 
 **Version History:**
 
+**Version 2.2.5** - 21 April 2022
+
+- Added the option to customize the proxy
+
+
 **Version 2.2.4** - 17 April 2022
 
 - Modify the regular expression to get information such as the author from the title
