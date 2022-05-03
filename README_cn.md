@@ -1,3 +1,8 @@
+
+<img src="/image/telegram.png" width="200" height="200" alt="抖音小程序"/>
+[![Telegram](/image/TelegramBots.svg)](https://t.me/+TAT5NFNLhI83MTc1)
+<br/>
+
 这个插件可以从[E站](https://e-hentai.org/)上下载本子的元数据。
 
 **主要特点**
