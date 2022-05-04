@@ -48,6 +48,13 @@ The Database from EhTagTranslation [Database](https://github.com/EhTagTranslatio
 
 **Version History:**
 
+**Version 2.2.6** - 4 May 2022
+
+- Resolve to capitalize a tag if the language is English or undefined
+- If the language is not defined, the language of the manga can be set to Japanese depending on whether there is a Japanese title
+- Fixed some minor issues
+
+
 **Version 2.2.5** - 21 April 2022
 
 - Added the option to customize the proxy
