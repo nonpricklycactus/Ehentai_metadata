@@ -23,12 +23,14 @@ from PyQt5 import QtCore,QtWidgets,QtGui
 # TODO: fill the LANGUAGE_LIST
 LANGUAGE_DICT = {
     'Chinese'   : 'chinese',
+    'chinese': 'chinese',
     '中国語'    : 'chinese',
     '中国翻訳'  : 'chinese',
     '中国語翻訳': 'chinese',
     'Japanese'  : 'japanese',
     '日語'      : 'japanese',
     'English'   : 'english',
+    '英訳' : 'english',
     'Spanish'   : 'spanish',
     'French'    : 'french',
     'Russian'   : 'russian',
@@ -214,7 +216,7 @@ def toMetadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{{
 
     # add magazine to tag if it has magazine attribute
     if not is_parody and magazine_or_parody:
-        tags_.add('manazine:%s' % magazine_or_parody)
+        tags_.add('magazine:%s' % magazine_or_parody)
 
     # add uploader to tag
     tags_.add('uploader:%s' % uploader)
@@ -231,6 +233,10 @@ def toMetadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{{
                 continue
             # assume addtion fields that aren't languages nor other tags are translators
             tags_.add('translator:%s' % addtion)
+
+    if not languages and has_jpn_title:
+        languages.add('japanese')
+
 
     mi.tags = list(tags_)
     mi.languages = list(languages)
@@ -290,7 +296,7 @@ class getUrlUI():
 class Ehentai(Source):
     name = 'E-hentai Galleries'
     author = 'nonpricklycactus'
-    version = (2, 2, 5)
+    version = (2, 2, 6)
     minimum_calibre_version = (1, 0, 0)
 
     description = _('Download metadata and cover from e-hentai.org.'
@@ -483,7 +489,7 @@ class Ehentai(Source):
                     db = ans.identifiers['ehentai']
                     if ans.has_ehentai_cover:
                         self.cache_identifier_to_cover_url(db, ans.has_ehentai_cover)
-                    self.clean_downloaded_metadata(ans)
+                    #self.clean_downloaded_metadata(ans)
                     result_queue.put(ans)
             except:
                 log.exception('Failed to get metadata for identify entry:', gmetadata)
@@ -629,8 +635,8 @@ if __name__ == '__main__': # tests {{{
     test_identify_plugin(Ehentai.name,
         [
             (
-                {'title': 'キリト君の白くべたつくなにか', 'authors': ['しらたま肉球']},
-                [title_test('キリト君の白くべたつくなにか', exact=False)]
+                {'title': 'コミックリブート Vol.35', 'authors': ['']},
+                [title_test('コミックリブート Vol.35', exact=False)]
             )
     ])
 # }}}
