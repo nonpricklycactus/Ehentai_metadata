@@ -296,7 +296,7 @@ class getUrlUI():
 class Ehentai(Source):
     name = 'E-hentai Galleries'
     author = 'nonpricklycactus'
-    version = (2, 2, 6)
+    version = (2, 2, 7)
     minimum_calibre_version = (1, 0, 0)
 
     description = _('Download metadata and cover from e-hentai.org.'
@@ -602,7 +602,7 @@ class Ehentai(Source):
             w = QtWidgets.QWidget()
             ui = getUrlUI()
             ui.setUI(w)
-            app.exec_()
+            app.exec()
             #print("获取的数据：", accurate_url)
 
         if accurate_label:
