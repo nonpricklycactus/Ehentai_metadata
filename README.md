@@ -47,7 +47,7 @@ This plug-in is adapted from the idea of ​​[doujinshi_metadata_plugins](http
 The Database from EhTagTranslation [Database](https://github.com/EhTagTranslation/Database) and data transformation
 
 **Version History:**
-**Version 2.2.6** - 20 August 2022
+**Version 2.2.7** - 20 August 2022
 
 - Solve the problem of Accurate_Label crash in Calibre 6 version
 
