@@ -44,6 +44,7 @@
 该数据库来自EhTagTranslation的[Database](https://github.com/EhTagTranslation/Database)数据改造而来
 
 **版本历史**
+
 **Version 2.3.0** - 2022-8-21
 
 - 去除上传者标签
