@@ -78,8 +78,9 @@ def traslate(sqlitUrl,gmetadata):
             i=i+1
         gmetadata.languages = languages
 
+    groups = []
+    authors = []
     for tag in gmetadata.tags:
-        j = 0
         taglist = tag.split(":")
         tableName = getName(taglist,0)
         nameSpace = findName(c,"SELECT name from rows WHERE key like '{key}'".format(key=tableName),tableName)
@@ -95,15 +96,16 @@ def traslate(sqlitUrl,gmetadata):
             comment = "SELECT name from {table} WHERE raw like '{raw}'".format(table=tableName, raw=raw)
             Newtag = findName(c,comment,raw)
             if tableName == "groups":
-                gmetadata.publisher = Newtag
+                groups.append(Newtag)
+               # gmetadata.publisher = Newtag
             elif tableName == "artist":
-                authors = gmetadata.authors
-                authors[j] = Newtag
-                j = j+1
-                gmetadata.authors = authors
+                authors.append(Newtag)
             else:
                 Newtag = nameSpace + ":" + Newtag
                 tranTag.append(Newtag)
+
+    gmetadata.publisher = groups
+    gmetadata.authors = authors
 
     gmetadata.tags = tranTag
     conn.close()
@@ -219,7 +221,7 @@ def toMetadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{{
         tags_.add('magazine:%s' % magazine_or_parody)
 
     # add uploader to tag
-    tags_.add('uploader:%s' % uploader)
+    # tags_.add('uploader:%s' % uploader)
 
     for addtion in extractFieldFromTitle(title, log).addtions + (addtional if has_jpn_title else []):
         if addtion in OTHER_DICT:
@@ -256,6 +258,8 @@ def toMetadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{{
     # }}}
 
 class getUrlUI():
+    def __init__(self):
+        super().__init__()
 
     def setUI(self,w):
         #设置工具窗口的大小，前两个参数决定窗口的位置
@@ -296,7 +300,7 @@ class getUrlUI():
 class Ehentai(Source):
     name = 'E-hentai Galleries'
     author = 'nonpricklycactus'
-    version = (2, 2, 7)
+    version = (2, 2, 8)
     minimum_calibre_version = (1, 0, 0)
 
     description = _('Download metadata and cover from e-hentai.org.'
