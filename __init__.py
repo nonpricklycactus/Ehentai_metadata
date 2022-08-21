@@ -69,14 +69,11 @@ def traslate(sqlitUrl,gmetadata):
     c = conn.cursor()
     tranTag = []
 
+    languages = []
     if len(gmetadata.languages)>0:
-        languages = gmetadata.languages
-        i = 0
-        for language in languages:
+        for language in gmetadata.languages:
             Newlanguage = findName(c,"SELECT name from language WHERE raw like '{raw}'".format(raw=language),language)
-            languages[i] = Newlanguage
-            i=i+1
-        gmetadata.languages = languages
+            languages.append(Newlanguage)
 
     groups = []
     authors = []
@@ -100,12 +97,15 @@ def traslate(sqlitUrl,gmetadata):
                # gmetadata.publisher = Newtag
             elif tableName == "artist":
                 authors.append(Newtag)
+            elif tableName == "language":
+                languages.append(Newtag)
             else:
                 Newtag = nameSpace + ":" + Newtag
                 tranTag.append(Newtag)
 
     gmetadata.publisher = groups
     gmetadata.authors = authors
+    gmetadata.languages = set(languages)
 
     gmetadata.tags = tranTag
     conn.close()
@@ -300,7 +300,7 @@ class getUrlUI():
 class Ehentai(Source):
     name = 'E-hentai Galleries'
     author = 'nonpricklycactus'
-    version = (2, 3, 0)
+    version = (2, 3, 1)
     minimum_calibre_version = (1, 0, 0)
 
     description = _('Download metadata and cover from e-hentai.org.'

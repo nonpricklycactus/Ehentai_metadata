@@ -51,6 +51,7 @@ The Database from EhTagTranslation [Database](https://github.com/EhTagTranslatio
 **Version 2.3.0** - 21 August 2022
 
 - Remove uploader tag
+- Remove the language classification in the label and put it into the calibre's own language
 - Resolved an issue where only one would be added when there are multiple artists and societies
 
 
