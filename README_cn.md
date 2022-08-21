@@ -44,6 +44,12 @@
 该数据库来自EhTagTranslation的[Database](https://github.com/EhTagTranslation/Database)数据改造而来
 
 **版本历史**
+**Version 2.3.0** - 2022-8-21
+
+- 去除上传者标签
+- 解决存在多个画师和社团时只会添加一个问题
+
+
 **Version 2.2.7** - 2022-8-20
 
 - 解决在Calibre 6版本Accurate_Label闪退问题

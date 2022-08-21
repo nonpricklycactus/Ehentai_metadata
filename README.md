@@ -47,6 +47,12 @@ This plug-in is adapted from the idea of ​​[doujinshi_metadata_plugins](http
 The Database from EhTagTranslation [Database](https://github.com/EhTagTranslation/Database) and data transformation
 
 **Version History:**
+**Version 2.3.0** - 21 August 2022
+
+- Remove uploader tag
+- Resolved an issue where only one would be added when there are multiple artists and societies
+
+
 **Version 2.2.7** - 20 August 2022
 
 - Solve the problem of Accurate_Label crash in Calibre 6 version
