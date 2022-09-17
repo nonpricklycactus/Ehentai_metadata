@@ -2,7 +2,19 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2384cf8b-7d12-4031-9410-4a3db3f334e6" name="Changes" comment="v2.2.7说明文档修改">
+      <change afterPath="$PROJECT_DIR$/database/databaseLog.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/database/writeDatabase-artist.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/database/writeDatabase-character.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/database/writeDatabase-cosplayer.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/database/writeDatabase-group.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/database/writeDatabase-parody.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/database/writeDatabase.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/info" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/testcmd.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/Ehentai_metadata.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Ehentai_metadata.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/__init__.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -15,8 +27,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/__init__.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-2052">
-              <caret line="11" column="54" selection-start-line="11" selection-start-column="54" selection-end-line="11" selection-end-column="54" />
+            <state relative-caret-position="-152">
+              <caret line="196" column="41" lean-forward="true" selection-start-line="196" selection-start-column="41" selection-end-line="196" selection-end-column="41" />
             </state>
           </provider>
         </entry>
@@ -25,6 +37,18 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="main" />
+      </map>
+    </option>
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="CHANGED_PATHS">
+      <list>
+        <option value="$PROJECT_DIR$/__init__.py" />
+      </list>
+    </option>
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
@@ -41,18 +65,23 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
             <path>
               <item name="Ehentai_metadata" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Ehentai_metadata" type="47feb1d3:ProjectViewModuleNode" />
+            </path>
+            <path>
+              <item name="Ehentai_metadata" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Ehentai_metadata" type="47feb1d3:ProjectViewModuleNode" />
               <item name="Ehentai_metadata" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
         </subPane>
       </pane>
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="ProjectViewState">
@@ -63,6 +92,12 @@
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PythonContentEntriesConfigurable" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="F:\RemoteCode\Ehentai_metadata" />
+    </key>
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -90,6 +125,8 @@
       <workItem from="1660990182700" duration="45000" />
       <workItem from="1660990285610" duration="42000" />
       <workItem from="1661055506309" duration="14000" />
+      <workItem from="1663377114248" duration="66000" />
+      <workItem from="1663377212729" duration="275000" />
     </task>
     <task id="LOCAL-00001" summary="v2.2.6说明文档修改">
       <created>1660990211087</created>
@@ -109,12 +146,13 @@
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="101000" />
+    <option name="totallyTimeSpent" value="442000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-7" y="-7" width="1721" height="1033" extended-state="6" />
+    <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.25556225" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.26157546" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -146,10 +184,13 @@
     <option name="LAST_COMMIT_MESSAGE" value="v2.2.7说明文档修改" />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/testcmd.txt">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
     <entry file="file://$PROJECT_DIR$/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-2052">
-          <caret line="11" column="54" selection-start-line="11" selection-start-column="54" selection-end-line="11" selection-end-column="54" />
+        <state relative-caret-position="-152">
+          <caret line="196" column="41" lean-forward="true" selection-start-line="196" selection-start-column="41" selection-end-line="196" selection-end-column="41" />
         </state>
       </provider>
     </entry>

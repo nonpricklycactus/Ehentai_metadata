@@ -182,7 +182,7 @@ def toMetadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{{
     gid = gmetadata['gid']
     token = gmetadata['token']
     thumb = gmetadata['thumb']
-    uploader = gmetadata['uploader']
+    #uploader = gmetadata['uploader']
 
     # determine if magazine_or_parody is magazine or parody
     is_parody = False
