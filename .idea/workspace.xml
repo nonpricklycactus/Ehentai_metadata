@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="2384cf8b-7d12-4031-9410-4a3db3f334e6" name="Changes" comment="添加开发分支">
+    <list default="true" id="2384cf8b-7d12-4031-9410-4a3db3f334e6" name="Changes" comment="完善多社团的添加">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/EhTagTranslation.db" beforeDir="false" afterPath="$PROJECT_DIR$/EhTagTranslation.db" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/info" beforeDir="false" afterPath="$PROJECT_DIR$/info" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -17,8 +16,17 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/__init__.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-14661">
-              <caret line="80" column="18" selection-start-line="80" selection-start-column="18" selection-end-line="80" selection-end-column="18" />
+            <state relative-caret-position="-3824">
+              <caret line="482" column="23" selection-start-line="482" selection-start-column="23" selection-end-line="482" selection-end-column="23" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/info">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="50">
+              <caret line="2" column="20" selection-start-line="2" selection-start-column="20" selection-end-line="2" selection-end-column="20" />
             </state>
           </provider>
         </entry>
@@ -34,6 +42,11 @@
       </file>
     </leaf>
   </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>Failed to get gallery_id and gallery_token!</find>
+    </findStrings>
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="RECENT_BRANCH_BY_REPOSITORY">
@@ -46,6 +59,7 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$PROJECT_DIR$/__init__.py" />
+        <option value="$PROJECT_DIR$/info" />
       </list>
     </option>
   </component>
@@ -110,6 +124,35 @@
       </list>
     </option>
   </component>
+  <component name="RunManager">
+    <configuration name="writeDatabase" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="Ehentai_metadata" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/database" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/database/writeDatabase.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.writeDatabase" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SpellCheckerSettings" BundledDictionaries="0" Folders="0" CustomDictionaries="0" Dictionaries="0" CorrectionsLimit="5" DefaultDictionary="application-level" UseSingleDictionary="true" />
   <component name="SvnConfiguration">
     <configuration />
@@ -127,7 +170,7 @@
       <workItem from="1663377114248" duration="66000" />
       <workItem from="1663377212729" duration="275000" />
       <workItem from="1663378148991" duration="121000" />
-      <workItem from="1663472621485" duration="5667000" />
+      <workItem from="1663472621485" duration="8548000" />
     </task>
     <task id="LOCAL-00001" summary="v2.2.6说明文档修改">
       <created>1660990211087</created>
@@ -150,18 +193,27 @@
       <option name="project" value="LOCAL" />
       <updated>1663378215924</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="完善多社团的添加">
+      <created>1663478362443</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1663478362443</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="6230000" />
+    <option name="totallyTimeSpent" value="9111000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-7" y="-7" width="1721" height="1033" extended-state="6" />
+    <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.11365003" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.11365003" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
+      <window_info anchor="bottom" id="Messages" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
       <window_info anchor="bottom" id="Run" order="2" />
@@ -173,7 +225,7 @@
       <window_info anchor="bottom" id="Version Control" order="8" />
       <window_info anchor="bottom" id="Database Changes" order="9" />
       <window_info anchor="bottom" id="Event Log" order="10" side_tool="true" />
-      <window_info active="true" anchor="bottom" id="Terminal" order="11" visible="true" weight="0.37402886" />
+      <window_info anchor="bottom" id="Terminal" order="11" visible="true" weight="0.083240844" />
       <window_info anchor="bottom" id="Python Console" order="12" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
@@ -189,7 +241,11 @@
     <MESSAGE value="v2.2.6说明文档修改" />
     <MESSAGE value="v2.2.7说明文档修改" />
     <MESSAGE value="添加开发分支" />
-    <option name="LAST_COMMIT_MESSAGE" value="添加开发分支" />
+    <MESSAGE value="完善多社团的添加" />
+    <option name="LAST_COMMIT_MESSAGE" value="完善多社团的添加" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/Ehentai_metadata$writeDatabase.coverage" NAME="writeDatabase Coverage Results" MODIFIED="1663481277474" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/database" />
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/__init__old.py">
@@ -209,10 +265,41 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/../calibre/src/calibre/srv/loop.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-978">
+          <caret line="9" column="10" selection-start-line="9" selection-start-column="10" selection-end-line="9" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../calibre/src/calibre/ebooks/metadata/sources/amazon.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="116">
+          <caret line="16" column="15" selection-start-line="16" selection-start-column="9" selection-end-line="16" selection-end-column="15" />
+          <folding>
+            <element signature="e#145#227#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../calibre/src/calibre/ebooks/metadata/sources/base.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="245">
+          <caret line="289" column="3" lean-forward="true" selection-start-line="289" selection-start-column="3" selection-end-line="289" selection-end-column="3" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/info">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="50">
+          <caret line="2" column="20" selection-start-line="2" selection-start-column="20" selection-end-line="2" selection-end-column="20" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-14661">
-          <caret line="80" column="18" selection-start-line="80" selection-start-column="18" selection-end-line="80" selection-end-column="18" />
+        <state relative-caret-position="-3824">
+          <caret line="482" column="23" selection-start-line="482" selection-start-column="23" selection-end-line="482" selection-end-column="23" />
         </state>
       </provider>
     </entry>
