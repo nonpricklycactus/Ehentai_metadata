@@ -47,6 +47,14 @@ OTHER_DICT = {
     '無修正'    : 'uncensored',
 }
 
+CALIBRELANGUAGES_DICT={
+'汉语':'中文',
+'韩语':'朝鲜语',
+'日语':'日语',
+'英语':'英语',
+'俄语':'俄语'
+}
+
 
 def getName(list,i):
     try:
@@ -69,11 +77,15 @@ def traslate(sqlitUrl,gmetadata):
     c = conn.cursor()
     tranTag = []
 
+    orLanguage = []
     languages = []
     if len(gmetadata.languages)>0:
         for language in gmetadata.languages:
             Newlanguage = findName(c,"SELECT name from language WHERE raw like '{raw}'".format(raw=language),language)
-            languages.append(Newlanguage)
+            orLanguage.append(Newlanguage)
+            print(gmetadata.languages)
+  #  gmetadata.languages=orLanguage
+          #  languages.append(Newlanguage)
 
     groups = []
     authors = []
@@ -97,16 +109,23 @@ def traslate(sqlitUrl,gmetadata):
                # gmetadata.publisher = Newtag
             elif tableName == "artist":
                 authors.append(Newtag)
-            elif tableName == "language":
-                languages.append(Newtag)
             else:
+                if tableName == "language":
+                    if Newtag in CALIBRELANGUAGES_DICT:
+                        languages.append(CALIBRELANGUAGES_DICT[Newtag])
                 Newtag = nameSpace + ":" + Newtag
                 tranTag.append(Newtag)
 
-    gmetadata.publisher = groups
+    if len(languages)>0:
+        gmetadata.languages = list(languages)
+        print(languages)
+    res = ""
+    for s in groups:
+        if len(groups) <= 1:
+            gmetadata.publisher = s
+        res = res+s+'&'
+    gmetadata.publisher = res.strip('&')
     gmetadata.authors = authors
-    gmetadata.languages = set(languages)
-
     gmetadata.tags = tranTag
     conn.close()
 
@@ -182,7 +201,7 @@ def toMetadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{{
     gid = gmetadata['gid']
     token = gmetadata['token']
     thumb = gmetadata['thumb']
-    uploader = gmetadata['uploader']
+    #uploader = gmetadata['uploader']
 
     # determine if magazine_or_parody is magazine or parody
     is_parody = False
