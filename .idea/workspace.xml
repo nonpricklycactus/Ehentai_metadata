@@ -1,19 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="2384cf8b-7d12-4031-9410-4a3db3f334e6" name="Changes" comment="v2.2.7说明文档修改">
-      <change afterPath="$PROJECT_DIR$/database/databaseLog.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/database/writeDatabase-artist.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/database/writeDatabase-character.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/database/writeDatabase-cosplayer.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/database/writeDatabase-group.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/database/writeDatabase-parody.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/database/writeDatabase.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/info" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/testcmd.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/Ehentai_metadata.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Ehentai_metadata.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="2384cf8b-7d12-4031-9410-4a3db3f334e6" name="Changes" comment="添加开发分支">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EhTagTranslation.db" beforeDir="false" afterPath="$PROJECT_DIR$/EhTagTranslation.db" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/__init__.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -27,8 +17,17 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/__init__.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-152">
-              <caret line="196" column="41" lean-forward="true" selection-start-line="196" selection-start-column="41" selection-end-line="196" selection-end-column="41" />
+            <state relative-caret-position="-14661">
+              <caret line="80" column="18" selection-start-line="80" selection-start-column="18" selection-end-line="80" selection-end-column="18" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/testcmd.txt">
+          <provider selected="true" editor-type-id="text-editor">
+            <state>
+              <caret line="1" selection-start-line="1" selection-end-line="1" selection-end-column="28" />
             </state>
           </provider>
         </entry>
@@ -92,7 +91,7 @@
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
-    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PythonContentEntriesConfigurable" />
+    <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
@@ -127,6 +126,8 @@
       <workItem from="1661055506309" duration="14000" />
       <workItem from="1663377114248" duration="66000" />
       <workItem from="1663377212729" duration="275000" />
+      <workItem from="1663378148991" duration="121000" />
+      <workItem from="1663472621485" duration="5667000" />
     </task>
     <task id="LOCAL-00001" summary="v2.2.6说明文档修改">
       <created>1660990211087</created>
@@ -142,17 +143,23 @@
       <option name="project" value="LOCAL" />
       <updated>1660990295787</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="添加开发分支">
+      <created>1663378215924</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1663378215924</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="442000" />
+    <option name="totallyTimeSpent" value="6230000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-7" y="-7" width="1721" height="1033" extended-state="6" />
-    <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.26157546" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.11365003" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -166,7 +173,7 @@
       <window_info anchor="bottom" id="Version Control" order="8" />
       <window_info anchor="bottom" id="Database Changes" order="9" />
       <window_info anchor="bottom" id="Event Log" order="10" side_tool="true" />
-      <window_info anchor="bottom" id="Terminal" order="11" />
+      <window_info active="true" anchor="bottom" id="Terminal" order="11" visible="true" weight="0.37402886" />
       <window_info anchor="bottom" id="Python Console" order="12" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
@@ -181,16 +188,31 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="v2.2.6说明文档修改" />
     <MESSAGE value="v2.2.7说明文档修改" />
-    <option name="LAST_COMMIT_MESSAGE" value="v2.2.7说明文档修改" />
+    <MESSAGE value="添加开发分支" />
+    <option name="LAST_COMMIT_MESSAGE" value="添加开发分支" />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/__init__old.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-1727">
+          <caret line="5730" column="30" lean-forward="true" selection-start-line="5730" selection-start-column="30" selection-end-line="5730" selection-end-column="30" />
+          <folding>
+            <element signature="e#729#498261#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/testcmd.txt">
-      <provider selected="true" editor-type-id="text-editor" />
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret line="1" selection-start-line="1" selection-end-line="1" selection-end-column="28" />
+        </state>
+      </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-152">
-          <caret line="196" column="41" lean-forward="true" selection-start-line="196" selection-start-column="41" selection-end-line="196" selection-end-column="41" />
+        <state relative-caret-position="-14661">
+          <caret line="80" column="18" selection-start-line="80" selection-start-column="18" selection-end-line="80" selection-end-column="18" />
         </state>
       </provider>
     </entry>
