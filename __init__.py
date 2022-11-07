@@ -319,7 +319,7 @@ class getUrlUI():
 class Ehentai(Source):
     name = 'E-hentai Galleries'
     author = 'nonpricklycactus'
-    version = (2, 3, 0)
+    version = (2, 3, 1)
     minimum_calibre_version = (1, 0, 0)
 
     description = _('Download metadata and cover from e-hentai.org.'
@@ -439,10 +439,13 @@ class Ehentai(Source):
             q = q.encode('utf-8')
         if not q:
             return None
+        '''
         q_dict = {'f_doujinshi': 1, 'f_manga': 1, 'f_artistcg': 1, 'f_gamecg': 1, 'f_western': 1, 'f_non-h': 1,
                   'f_imageset': 1, 'f_cosplay': 1, 'f_asianporn': 1, 'f_misc': 1, 'f_search': q,
                   'f_apply': 'Apply+Filter',
                   'advsearch': 1, 'f_sname': 'on','f_sh': 'on', 'f_srdd': 2}
+        '''
+        q_dict = {'f_search': q}
         if is_exhentai is False:
             url = EHentai_SEARCH_URL + urlencode(q_dict)
         else:
@@ -658,8 +661,8 @@ if __name__ == '__main__': # tests {{{
     test_identify_plugin(Ehentai.name,
         [
             (
-                {'title': 'コミックリブート Vol.35', 'authors': ['']},
-                [title_test('コミックリブート Vol.35', exact=False)]
+                {'title': 'キリト君の白くべたつくなにか', 'authors': ['しらたま肉球']},
+                [title_test('キリト君の白くべたつくなにか', exact=False)]
             )
     ])
 # }}}
