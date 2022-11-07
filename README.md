@@ -48,6 +48,10 @@ The Database from EhTagTranslation [Database](https://github.com/EhTagTranslatio
 
 **Version History:**
 
+**Version 2.3.1** - 2022-11-07
+
+- Fix the problem that the revision data of e-station cannot be found
+
 **Version 2.3.0** - 21 August 2022
 
 - Remove uploader tag
