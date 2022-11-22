@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="2384cf8b-7d12-4031-9410-4a3db3f334e6" name="Changes" comment="修复e站改版搜索问题">
+    <list default="true" id="2384cf8b-7d12-4031-9410-4a3db3f334e6" name="Changes" comment="优化搜索能力，去除Chinese_Tags">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/__init__.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -13,11 +12,23 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/__init__.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2147">
-              <caret line="704" column="26" selection-start-line="704" selection-start-column="26" selection-end-line="704" selection-end-column="26" />
+            <state relative-caret-position="397">
+              <caret line="634" column="57" lean-forward="true" selection-start-line="634" selection-start-column="57" selection-end-line="634" selection-end-column="57" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/database/writeDatabase.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="200">
+              <caret line="8" column="19" lean-forward="true" selection-start-line="8" selection-start-column="19" selection-end-line="8" selection-end-column="19" />
+              <folding>
+                <element signature="e#0#14#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -111,7 +122,7 @@
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
-    <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
+    <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
@@ -209,7 +220,7 @@
       <workItem from="1669109035351" duration="2341000" />
       <workItem from="1669112101767" duration="2072000" />
       <workItem from="1669114255726" duration="97000" />
-      <workItem from="1669114399713" duration="1601000" />
+      <workItem from="1669114399713" duration="2013000" />
     </task>
     <task id="LOCAL-00001" summary="v2.2.6说明文档修改">
       <created>1660990211087</created>
@@ -253,16 +264,23 @@
       <option name="project" value="LOCAL" />
       <updated>1667824439246</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="优化搜索能力，去除Chinese_Tags">
+      <created>1669116255876</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1669116255877</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="20230000" />
+    <option name="totallyTimeSpent" value="20642000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-7" y="-7" width="1721" height="1033" extended-state="7" />
+    <frame x="-7" y="-7" width="1721" height="1033" extended-state="6" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.12567648" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.12567648" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -276,7 +294,7 @@
       <window_info anchor="bottom" id="Version Control" order="8" weight="0.3307436" />
       <window_info anchor="bottom" id="Database Changes" order="9" />
       <window_info anchor="bottom" id="Event Log" order="10" side_tool="true" />
-      <window_info active="true" anchor="bottom" id="Terminal" order="11" visible="true" weight="0.3218646" />
+      <window_info anchor="bottom" id="Terminal" order="11" visible="true" weight="0.3218646" />
       <window_info anchor="bottom" id="Python Console" order="12" />
       <window_info anchor="bottom" id="Messages" order="13" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
@@ -336,7 +354,8 @@
     <MESSAGE value="完善多社团的添加" />
     <MESSAGE value="v6.5365.1" />
     <MESSAGE value="修复e站改版搜索问题" />
-    <option name="LAST_COMMIT_MESSAGE" value="修复e站改版搜索问题" />
+    <MESSAGE value="优化搜索能力，去除Chinese_Tags" />
+    <option name="LAST_COMMIT_MESSAGE" value="优化搜索能力，去除Chinese_Tags" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Ehentai_metadata$writeDatabase.coverage" NAME="writeDatabase Coverage Results" MODIFIED="1663481277474" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/database" />
@@ -387,8 +406,18 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2147">
-          <caret line="704" column="26" selection-start-line="704" selection-start-column="26" selection-end-line="704" selection-end-column="26" />
+        <state relative-caret-position="397">
+          <caret line="634" column="57" lean-forward="true" selection-start-line="634" selection-start-column="57" selection-end-line="634" selection-end-column="57" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/database/writeDatabase.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="200">
+          <caret line="8" column="19" lean-forward="true" selection-start-line="8" selection-start-column="19" selection-end-line="8" selection-end-column="19" />
+          <folding>
+            <element signature="e#0#14#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
