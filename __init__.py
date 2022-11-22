@@ -19,6 +19,7 @@ import sqlite3
 import html
 from urllib.parse import urlencode
 from PyQt5 import QtCore,QtWidgets,QtGui
+import difflib
 
 # TODO: fill the LANGUAGE_LIST
 LANGUAGE_DICT = {
@@ -83,7 +84,6 @@ def traslate(sqlitUrl,gmetadata):
         for language in gmetadata.languages:
             Newlanguage = findName(c,"SELECT name from language WHERE raw like '{raw}'".format(raw=language),language)
             orLanguage.append(Newlanguage)
-            print(gmetadata.languages)
   #  gmetadata.languages=orLanguage
           #  languages.append(Newlanguage)
 
@@ -118,7 +118,6 @@ def traslate(sqlitUrl,gmetadata):
 
     if len(languages)>0:
         gmetadata.languages = list(languages)
-        print(languages)
     res = ""
     for s in groups:
         if len(groups) <= 1:
@@ -319,7 +318,7 @@ class getUrlUI():
 class Ehentai(Source):
     name = 'E-hentai Galleries'
     author = 'nonpricklycactus'
-    version = (2, 3, 1)
+    version = (2, 3, 2)
     minimum_calibre_version = (1, 0, 0)
 
     description = _('Download metadata and cover from e-hentai.org.'
@@ -340,8 +339,6 @@ class Ehentai(Source):
                _('If Use Exhentai is True, the plugin will search metadata on exhentai.')),
         Option('Chinese_Exhentai', 'bool', False, _('Chinese Exhentai'),
                _('If Use Chinese Exhentai is True, This plugin will translate metadata into Chinese.')),
-        Option('Chinese_Tags', 'bool', False, _('Chinese Tags'),
-               _('如果勾选Chinese_Tags，那么将只会搜索中文本子')),
         Option('Accurate_Label', 'bool', False, _('Accurate_Label'),
                _('如果勾选Accurate_Label，那么将只会获取给定accurate_url页面的tag')),
         Option('Use_Proxy','bool',False,_('Use Proxy'),
@@ -387,7 +384,6 @@ class Ehentai(Source):
 
     def config_chinese(self):
         self.Chinese_Status = self.prefs['Chinese_Exhentai']
-        self.Chinese_Tags = self.prefs['Chinese_Tags']
         EhTagTranslation_db = self.prefs['EhTagTranslation_db']
         if self.Chinese_Status is True:
             self.sqlitUrl = EhTagTranslation_db + "\EhTagTranslation.db"
@@ -417,34 +413,19 @@ class Ehentai(Source):
 
         EHentai_SEARCH_URL = 'https://e-hentai.org/?'
         ExHentai_SEARCH_URL = 'https://exhentai.org/?'
-
         q = ''
-
-        if title or authors:
+        if title:
             def build_term(type, parts):
                 return ' '.join(x for x in parts)
-
             title_token = list(self.get_title_tokens(title))
             if title_token:
                 q = q + build_term('title', title_token)
-            author_token = list(self.get_author_tokens(authors, only_first_author=True))
-            if author_token:
-                q = q + (' ' if q != '' else '') + build_term('author', author_token)
-
-        if chinese_tags:
-            q = q + " " + "chinese"
         q = q.strip()
         #print("查询条码：", q)
         if isinstance(q, str):
             q = q.encode('utf-8')
         if not q:
             return None
-        '''
-        q_dict = {'f_doujinshi': 1, 'f_manga': 1, 'f_artistcg': 1, 'f_gamecg': 1, 'f_western': 1, 'f_non-h': 1,
-                  'f_imageset': 1, 'f_cosplay': 1, 'f_asianporn': 1, 'f_misc': 1, 'f_search': q,
-                  'f_apply': 'Apply+Filter',
-                  'advsearch': 1, 'f_sname': 'on','f_sh': 'on', 'f_srdd': 2}
-        '''
         q_dict = {'f_search': q}
         if is_exhentai is False:
             url = EHentai_SEARCH_URL + urlencode(q_dict)
@@ -455,18 +436,104 @@ class Ehentai(Source):
 
     # }}}
 
-    def get_gallery_info(self, log, raw):  # {{{
+    def create_query_detail(self, log, title=None, authors=None , identifiers={}, is_exhentai=False):  # {{{
 
+        EHentai_SEARCH_URL = 'https://e-hentai.org/?'
+        ExHentai_SEARCH_URL = 'https://exhentai.org/?'
+
+        q = ''
+
+        if title or authors:
+            def build_term(type, parts):
+                return ' '.join(x for x in parts)
+
+            title_token = list(self.get_title_tokens(title))
+            if title_token:
+                q = q + build_term('title', title_token)
+            if len(q)<40:
+                if '未知' not in authors or 'Unknown' not in authors:
+                    author_token = list(self.get_author_tokens(authors, only_first_author=True))
+                    if author_token:
+                        q = q + (' ' if q != '' else '') + build_term('author', author_token)
+            else:
+                pattern = re.compile(
+                    r'(?P<comments>.*?\[(?P<author>(?:(?!汉化|漢化|CE家族|天鵝之戀)[^\[\]])*)\](?:\s*(?:\[[^\(\)]+\]|\([^\[\]\(\)]+\))\s*)*(?P<title>[^\[\]\(\)]+).*)')
+                match = re.search(pattern,q)
+                title = match.group('title')
+                comments = match.group('comments')
+                author = match.group('author')
+                if len(title) < 45:
+                    q = title + ' ' + author
+                else:
+                    q = title
+                    slen = (45 if len(q) > 45 else len(q))
+                    q = q[0:slen]
+                for k in LANGUAGE_DICT:
+                    if k in comments:
+                        q = q + ' '+k
+
+        q = str(q).strip()
+        print("查询条码：", q)
+        if isinstance(q, str):
+            q = q.encode('utf-8')
+        if not q:
+            return None
+        '''
+        q_dict = {'f_doujinshi': 1, 'f_manga': 1, 'f_artistcg': 1, 'f_gamecg': 1, 'f_western': 1, 'f_non-h': 1,
+                  'f_imageset': 1, 'f_cosplay': 1, 'f_asianporn': 1, 'f_misc': 1, 'f_search': q,
+                  'f_apply': 'Apply+Filter',
+                  'advsearch': 1, 'f_sname': 'on','f_sh': 'on', 'f_srdd': 2}
+        '''
+        q_dict = {'f_cats':0,'f_search': q}
+        if is_exhentai is False:
+            url = EHentai_SEARCH_URL + urlencode(q_dict)
+        else:
+            url = ExHentai_SEARCH_URL + urlencode(q_dict)
+        #print("查询连接：",url)
+        return url
+
+    # }}}
+
+    def get_gallery_info(self, log, raw):  # {{{
         pattern = re.compile(
             r'https:\/\/(?:e-hentai\.org|exhentai\.org)\/g\/(?P<gallery_id>\d+)/(?P<gallery_token>\w+)/')
         results = re.findall(pattern, raw)
         if not results:
             log.exception('Failed to get gallery_id and gallery_token!')
             return None
-        #print("获取的信息：",results)
         gidlist = []
         for r in results:
             gidlist.append(list(r))
+        return gidlist
+
+
+    #不解决日语罗马音转换问题 无法继续缩小数据范围
+    def get_gallery_info2(self, log, raw,ortitle):  # {{{
+
+        pattern = re.compile(
+            r'https:\/\/(?:e-hentai\.org|exhentai\.org)\/g\/(?P<gallery_id>\d+)/(?P<gallery_token>\w+)/')
+        titlePattern = re.compile(r'<div class="glink">(.*?)(?=</div>)')
+        results = re.findall(pattern, raw)
+        titles = re.findall(titlePattern, raw)
+        if not results:
+            log.exception('Failed to get gallery_id and gallery_token!')
+            return None
+        #print("获取的信息：",results)
+        gidlist = []
+        flag = 0
+        for title in titles:
+            print(title)
+            if ortitle in title:
+                gidlist.append(list(results[flag]))
+            else:
+                similary = difflib.SequenceMatcher(None, ortitle, title).ratio()
+                print(similary)
+                if (similary > 0.8):
+                    gidlist.append(list(results[flag]))
+            flag = flag + 1
+        if len(gidlist) == 0:
+            gidlist = self.get_gallery_info2(log,raw)
+        print(gidlist)
         return gidlist
 
     # }}}
@@ -570,19 +637,48 @@ class Ehentai(Source):
 
     # }}}
 
+    def get_html_content(self,br,query,is_exhentai,log, result_queue, abort, title, authors, identifiers, timeout):
+        try:
+            # 获取查询结果页面的数据
+            _raw = br.open_novisit(query, timeout=timeout)
+            raw = _raw.read()
+            # print("页面类型：",type(raw))
+            raw = raw.decode('unicode_escape')
+            return raw
+        except Exception as e:
+            log.exception('Failed to make identify query: %r' % query)
+            return as_unicode(e)
+        if not raw and identifiers and title and authors and not abort.is_set():
+            return self.identify(log, result_queue, abort, title=title, authors=authors, timeout=timeout)
+        if is_exhentai is True:
+            try:
+                'https://exhentai.org/' in raw
+            except Exception as e:
+                log.error('The cookies for ExHentai is invalid.')
+                log.error('Exhentai cookies:')
+                log.error(self.ExHentai_Cookies)
+                return
 
     def identify(self, log, result_queue, abort, title=None, authors=None, identifiers={}, timeout=30):  # {{{
 
         is_exhentai = self.ExHentai_Status
-        chinese_tags = self.Chinese_Tags
         accurate_label = self.Accurate_Label
         use_proxy = self.Proxy_Status
         proxy = self.Proxy
         print(proxy)
         global accurate_url
 
+        if accurate_label:
+            # 创建应用程序和对象
+            app = QtWidgets.QApplication(sys.argv)
+            w = QtWidgets.QWidget()
+            ui = getUrlUI()
+            ui.setUI(w)
+            app.exec()
+            #print("获取的数据：", accurate_url)
+
         #获取将查询信息进行拼接
-        query = self.create_query(log, title=title, authors=authors, identifiers=identifiers, is_exhentai=is_exhentai, chinese_tags = chinese_tags)
+        query = self.create_query(log, title=title, authors=authors, identifiers=identifiers, is_exhentai=is_exhentai)
         if not query:
             log.error('Insufficient metadata to construct query')
             return
@@ -599,50 +695,25 @@ class Ehentai(Source):
                 br.set_cookie(name=cookie['name'], value=cookie['value'], domain=cookie['domain'], path=cookie['path'])
 
 
-        if not accurate_label:
-            try:
-                #获取查询结果页面的数据
-                _raw = br.open_novisit(query, timeout=timeout)
-                raw = _raw.read()
-                # print("页面类型：",type(raw))
-                raw = raw.decode('unicode_escape')
-            except Exception as e:
-                log.exception('Failed to make identify query: %r' % query)
-                return as_unicode(e)
-            if not raw and identifiers and title and authors and not abort.is_set():
-                return self.identify(log, result_queue, abort, title=title, authors=authors, timeout=timeout)
-            if is_exhentai is True:
-                try:
-                    'https://exhentai.org/' in raw
-                except Exception as e:
-                    log.error('The cookies for ExHentai is invalid.')
-                    log.error('Exhentai cookies:')
-                    log.error(self.ExHentai_Cookies)
-                    return
+        if accurate_label:
+            raw = accurate_url
+        else:
+            raw = self.get_html_content(br,query,is_exhentai,log, result_queue, abort, title, authors, identifiers, 30)
 
         #得到查询页面结果信息
         gidlist = []
-        if accurate_label:
-            # 创建应用程序和对象
-            app = QtWidgets.QApplication(sys.argv)
-            w = QtWidgets.QWidget()
-            ui = getUrlUI()
-            ui.setUI(w)
-            app.exec()
-            #print("获取的数据：", accurate_url)
-
-        if accurate_label:
-            pattern = re.compile(
-                r'https:\/\/(?:e-hentai\.org|exhentai\.org)\/g\/(?P<gallery_id>\d+)/(?P<gallery_token>\w+)/')
-            results = re.findall(pattern, accurate_url)
-            if not results:
-                log.exception('Failed to get gallery_id and gallery_token!')
-                return None
-            # print("获取的信息：",results)
-            for r in results:
-                gidlist.append(list(r))
-        else:
+        for i in range(0,2):
             gidlist = self.get_gallery_info(log, raw)
+            if len(gidlist) != 0:
+                break
+            else:
+                query = self.create_query_detail(log, title=title, authors=authors, identifiers=identifiers,
+                                          is_exhentai=is_exhentai)
+                if not query:
+                    log.error('Insufficient metadata to construct query')
+                    return
+                raw = self.get_html_content(br, query, is_exhentai, log, result_queue, abort, title, authors,
+                                            identifiers, 30)
 
         if not gidlist:
             log.error('No result found.\n', 'query: %s' % query)
@@ -658,11 +729,13 @@ if __name__ == '__main__': # tests {{{
     from calibre.ebooks.metadata.sources.test import (test_identify_plugin,
         title_test, authors_test)
 
+    title = '[PiT (なつきしゅり)] アリステイル-記憶を失くした異世界の中で-奴隷編 [Chinese] [逃亡者×真不可视汉化组]'
+
     test_identify_plugin(Ehentai.name,
         [
             (
-                {'title': 'キリト君の白くべたつくなにか', 'authors': ['しらたま肉球']},
-                [title_test('キリト君の白くべたつくなにか', exact=False)]
+                {'title': '(C90) [Fatalpulse (Asanagi)] VictimGirls 21 Bokujou Happy End (Granblue Fantasy) [English] [Cutegirls] [Colorized]', 'authors': ['Unknown']},
+                [title_test('拘束する部活動', exact=False)]
             )
     ])
 # }}}
