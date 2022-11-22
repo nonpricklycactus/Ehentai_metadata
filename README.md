@@ -48,7 +48,7 @@ The Database from EhTagTranslation [Database](https://github.com/EhTagTranslatio
 
 **Version History:**
 
-**Version 2.3.1** - 2022-11-07
+**Version 2.3.2** - 2022-11-23
 
 - Optimize plug-in search ability
 - Remove the Chinese Tags checkbox
