@@ -614,6 +614,7 @@ class Ehentai(Source):
             _raw = br.open_novisit(query, timeout=timeout)
             raw = _raw.read()
             if 'Your IP address has been temporarily banned' in str(raw):
+                log.error('IP address has been temporarily banned')
                 raise Exception("IP address has been temporarily banned")
             # print("页面类型：",type(raw))
             raw = raw.decode('unicode_escape')
