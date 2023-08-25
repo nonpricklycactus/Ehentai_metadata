@@ -318,7 +318,7 @@ class getUrlUI():
 class Ehentai(Source):
     name = 'E-hentai Galleries'
     author = 'nonpricklycactus'
-    version = (2, 3, 2)
+    version = (2, 3, 3)
     minimum_calibre_version = (1, 0, 0)
 
     description = _('Download metadata and cover from e-hentai.org.'
@@ -413,25 +413,27 @@ class Ehentai(Source):
 
         EHentai_SEARCH_URL = 'https://e-hentai.org/?'
         ExHentai_SEARCH_URL = 'https://exhentai.org/?'
-        q = ''
+        reTitle = ''
         if title:
             def build_term(type, parts):
                 return ' '.join(x for x in parts)
             title_token = list(self.get_title_tokens(title))
             if title_token:
-                q = q + build_term('title', title_token)
-        q = q.strip()
-        #print("查询条码：", q)
-        if isinstance(q, str):
-            q = q.encode('utf-8')
-        if not q:
+                reTitle = reTitle + build_term('title', title_token)
+        reTitle = reTitle.strip()
+        if not reTitle:
             return None
-        q_dict = {'f_search': q}
+        if isinstance(reTitle, str):
+            if ('Chinese' in reTitle) or ('chinese' in reTitle) or ('汉化' in reTitle) or ('中国' in reTitle):
+                reTitle = reTitle + '+l:chinese'
+            reTitle = reTitle.encode('utf-8')
+
+        q_dict = {'f_cats':0,'f_search': reTitle}
         if is_exhentai is False:
             url = EHentai_SEARCH_URL + urlencode(q_dict)
         else:
             url = ExHentai_SEARCH_URL + urlencode(q_dict)
-        #print("查询连接：",url)
+
         return url
 
     # }}}
@@ -441,7 +443,7 @@ class Ehentai(Source):
         EHentai_SEARCH_URL = 'https://e-hentai.org/?'
         ExHentai_SEARCH_URL = 'https://exhentai.org/?'
 
-        q = ''
+        reTitle = ''
 
         if title or authors:
             def build_term(type, parts):
@@ -449,34 +451,35 @@ class Ehentai(Source):
 
             title_token = list(self.get_title_tokens(title))
             if title_token:
-                q = q + build_term('title', title_token)
-            if len(q)<40:
-                if '未知' not in authors or 'Unknown' not in authors:
-                    author_token = list(self.get_author_tokens(authors, only_first_author=True))
-                    if author_token:
-                        q = q + (' ' if q != '' else '') + build_term('author', author_token)
+                reTitle = reTitle + build_term('title', title_token)
+            if len(reTitle)<40:
+                if authors is not None:
+                    if ('未知' not in authors) or ('Unknown' not in authors):
+                        author_token = list(self.get_author_tokens(authors, only_first_author=True))
+                        if author_token:
+                            reTitle = reTitle + (' ' if reTitle != '' else '') + build_term('author', author_token)
             else:
                 pattern = re.compile(
                     r'(?P<comments>.*?\[(?P<author>(?:(?!汉化|漢化|CE家族|天鵝之戀)[^\[\]])*)\](?:\s*(?:\[[^\(\)]+\]|\([^\[\]\(\)]+\))\s*)*(?P<title>[^\[\]\(\)]+).*)')
-                match = re.search(pattern,q)
+                match = re.search(pattern,reTitle)
                 title = match.group('title')
                 comments = match.group('comments')
                 author = match.group('author')
                 if len(title) < 45:
-                    q = title + ' ' + author
+                    reTitle = title + ' ' + author
                 else:
-                    q = title
-                    slen = (45 if len(q) > 45 else len(q))
-                    q = q[0:slen]
+                    reTitle = title
+                    slen = (45 if len(reTitle) > 45 else len(reTitle))
+                    reTitle = reTitle[0:slen]
                 for k in LANGUAGE_DICT:
                     if k in comments:
-                        q = q + ' '+k
+                        reTitle = reTitle + ' '+k
 
-        q = str(q).strip()
-        print("查询条码：", q)
-        if isinstance(q, str):
-            q = q.encode('utf-8')
-        if not q:
+        reTitle = str(reTitle).strip()
+        log.info('The current secondary search title is ',reTitle)
+        if isinstance(reTitle, str):
+            reTitle = reTitle.encode('utf-8')
+        if not reTitle:
             return None
         '''
         q_dict = {'f_doujinshi': 1, 'f_manga': 1, 'f_artistcg': 1, 'f_gamecg': 1, 'f_western': 1, 'f_non-h': 1,
@@ -484,7 +487,7 @@ class Ehentai(Source):
                   'f_apply': 'Apply+Filter',
                   'advsearch': 1, 'f_sname': 'on','f_sh': 'on', 'f_srdd': 2}
         '''
-        q_dict = {'f_cats':0,'f_search': q}
+        q_dict = {'f_cats':0,'f_search': reTitle}
         if is_exhentai is False:
             url = EHentai_SEARCH_URL + urlencode(q_dict)
         else:
@@ -505,38 +508,6 @@ class Ehentai(Source):
         for r in results:
             gidlist.append(list(r))
         return gidlist
-
-
-    #不解决日语罗马音转换问题 无法继续缩小数据范围
-    def get_gallery_info2(self, log, raw,ortitle):  # {{{
-
-        pattern = re.compile(
-            r'https:\/\/(?:e-hentai\.org|exhentai\.org)\/g\/(?P<gallery_id>\d+)/(?P<gallery_token>\w+)/')
-        titlePattern = re.compile(r'<div class="glink">(.*?)(?=</div>)')
-        results = re.findall(pattern, raw)
-        titles = re.findall(titlePattern, raw)
-        if not results:
-            log.exception('Failed to get gallery_id and gallery_token!')
-            return None
-        #print("获取的信息：",results)
-        gidlist = []
-        flag = 0
-        for title in titles:
-            print(title)
-            if ortitle in title:
-                gidlist.append(list(results[flag]))
-            else:
-                similary = difflib.SequenceMatcher(None, ortitle, title).ratio()
-                print(similary)
-                if (similary > 0.8):
-                    gidlist.append(list(results[flag]))
-            flag = flag + 1
-        if len(gidlist) == 0:
-            gidlist = self.get_gallery_info2(log,raw)
-        print(gidlist)
-        return gidlist
-
-    # }}}
 
     def isSubsequence(self,s: str, t: str) -> bool:
         n, m = len(s), len(t)
@@ -642,6 +613,8 @@ class Ehentai(Source):
             # 获取查询结果页面的数据
             _raw = br.open_novisit(query, timeout=timeout)
             raw = _raw.read()
+            if 'Your IP address has been temporarily banned' in str(raw):
+                raise Exception("IP address has been temporarily banned")
             # print("页面类型：",type(raw))
             raw = raw.decode('unicode_escape')
             return raw
@@ -665,7 +638,7 @@ class Ehentai(Source):
         accurate_label = self.Accurate_Label
         use_proxy = self.Proxy_Status
         proxy = self.Proxy
-        print(proxy)
+        log.info(proxy)
         global accurate_url
 
         if accurate_label:
@@ -702,9 +675,9 @@ class Ehentai(Source):
 
         #得到查询页面结果信息
         gidlist = []
-        for i in range(0,2):
+        for i in range(0,1):
             gidlist = self.get_gallery_info(log, raw)
-            if len(gidlist) != 0:
+            if gidlist is not None:
                 break
             else:
                 query = self.create_query_detail(log, title=title, authors=authors, identifiers=identifiers,
@@ -729,29 +702,19 @@ if __name__ == '__main__': # tests {{{
     from calibre.ebooks.metadata.sources.test import (test_identify_plugin,
         title_test, authors_test)
 
-    title = '[PiT (なつきしゅり)] アリステイル-記憶を失くした異世界の中で-奴隷編 [Chinese] [逃亡者×真不可视汉化组]'
-
     test_identify_plugin(Ehentai.name,
         [
             (
-                {'title': '(C90) [Fatalpulse (Asanagi)] VictimGirls 21 Bokujou Happy End (Granblue Fantasy) [English] [Cutegirls] [Colorized]', 'authors': ['Unknown']},
-                [title_test('拘束する部活動', exact=False)]
-            )
-    ])
-# }}}
-
-'''
-(C72) [Kabayakiya (Unagimaru)] L&G - Ladies & Gentlemen (CODE GEASS_ Lelouch of the Rebellion) [Chinese] [飞雪汉化组]
+                {'title': 'xxx大手大脚哈吧就是看到那', 'authors': ['しらたま肉球']},
+                [title_test('xxx大手大脚哈吧就是看到那', exact=False)]
+            ),
             (
-                {'title': 'キリト君の白くべたつくなにか', 'authors': ['しらたま肉球']},
-                [title_test('キリト君の白くべたつくなにか', exact=False)]
-            )
-            (
-                {'title':'拘束する部活動 (僕は友達が少ない)','authors':['すもも堂 (すももEX) ','有条色狼']},
+                {'title': '拘束する部活動 (僕は友達が少ない)', 'authors': ['すもも堂 (すももEX) ', '有条色狼']},
                 [title_test('拘束する部活動', exact=False)]
             ),
             (
-                {'title':'桜の蜜','authors':['劇毒少女 (ke-ta)']},
+                {'title': '桜の蜜', 'authors': ['劇毒少女 (ke-ta)']},
                 [title_test('桜の蜜', exact=False)]
             )
-'''
+    ])
+# }}}
