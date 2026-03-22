@@ -37,46 +37,6 @@ This plugin downloads metadata from [E-Hentai Galleries](https://e-hentai.org/).
 >
 > Simply check "Translate tags to Chinese" in the plugin settings.
 
-**Special Thanks**
-
-This plug-in is adapted from the idea of ​​[doujinshi_metadata_plugins](https://github.com/yingziwu/doujinshi_metadata_plugins) of wuyingren.
-
-The Database from EhTagTranslation [Database](https://github.com/EhTagTranslation/Database) and data transformation
-
-## 🎯 Latest Update (2026-03-23)
-
-### Key Improvements
-
-#### 1. HTTP 400 Error Fix
-**Problem**: Custom metadata server returns "HTTP Error 400: BAD REQUEST".
-
-**Root Cause**:
-- Flask server requires `Content-Type: application/json` header, but plugin wasn't sending it correctly
-- Proxy settings interfering with local server connections
-- Insufficient request parameter validation
-
-**Solution**:
-- Ensure `Content-Type: application/json` header is correctly sent in `protocol.py`
-- Clear browser proxy settings when proxy is not enabled
-- Add client-side parameter validation and URL format checking
-- Use more reliable `urllib.request` method for sending requests
-
-#### 2. Configuration Interface Optimization
-**Problem**: Custom server configuration options were scattered in the settings interface.
-
-**Solution**:
-- Reorder options in `__init__.py`
-- Move custom metadata server options (`use_custom_metadata`, `custom_metadata_url`, `custom_metadata_token`) after `accurate_label`
-- Create logical grouping: Accurate Mode → Custom Server Extension
-
-#### 3. Enhanced Debugging Capabilities
-**Problem**: Difficult to diagnose issues when errors occur.
-
-**Solution**:
-- **Plugin-side enhanced logging**: Add detailed request/response logging in `protocol.py`
-- **Server-side enhanced logging**: Add detailed validation logging in `custom_metadata_server_example.py`
-- **Enriched error information**: HTTP errors now include status code, response body, etc.
-
 ## ⚙️ Complete Configuration Guide
 
 ### Search Mode Options
@@ -391,5 +351,10 @@ curl -X POST http://localhost:5000/metadata \
 
 - Initial release
 
+**Special Thanks**
+
+This plug-in is adapted from the idea of ​​[doujinshi_metadata_plugins](https://github.com/yingziwu/doujinshi_metadata_plugins) of wuyingren.
+
+The Database from EhTagTranslation [Database](https://github.com/EhTagTranslation/Database) and data transformation
 
 

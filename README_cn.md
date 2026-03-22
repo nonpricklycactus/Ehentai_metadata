@@ -34,47 +34,6 @@
 >
 > 只需在插件设置中勾选"Translate tags to Chinese"即可。
 
-
-**特别感谢**
-
-该插件由wuyingren的[doujinshi_metadata_plugins](https://github.com/yingziwu/doujinshi_metadata_plugins)思路改写。
-
-该数据库来自EhTagTranslation的[Database](https://github.com/EhTagTranslation/Database)数据改造而来
-
-## 🎯 最新更新 (2026年3月23日)
-
-### 主要改进
-
-#### 1. HTTP 400 错误修复
-**问题**: 配置自定义元数据服务器时，插件返回 "HTTP Error 400: BAD REQUEST" 错误。
-
-**根本原因**:
-- Flask服务器要求 `Content-Type: application/json` 头部，但插件未正确发送
-- 代理设置干扰了本地服务器的连接
-- 请求参数验证不充分
-
-**解决方案**:
-- 在 `protocol.py` 中确保正确发送 `Content-Type: application/json` 头部
-- 当未启用代理时，清除浏览器的代理设置
-- 添加客户端参数验证和URL格式检查
-- 使用更可靠的 `urllib.request` 方法发送请求
-
-#### 2. 配置界面优化
-**问题**: 自定义服务器配置选项分散在配置界面中，逻辑不清晰。
-
-**解决方案**:
-- 重新排序 `__init__.py` 中的选项定义
-- 将自定义元数据服务器选项 (`use_custom_metadata`, `custom_metadata_url`, `custom_metadata_token`) 移到 `accurate_label` 选项之后
-- 形成逻辑分组：精确模式 → 自定义服务器扩展
-
-#### 3. 调试能力增强
-**问题**: 出现错误时难以诊断问题原因。
-
-**解决方案**:
-- **插件端增强日志**: 在 `protocol.py` 中添加详细的请求/响应日志
-- **服务器端增强日志**: 在 `custom_metadata_server_example.py` 中添加详细的验证日志
-- **错误信息丰富化**: HTTP错误现在包含状态码、响应体等详细信息
-
 ## ⚙️ 完整配置指南
 
 ### 搜索模式选项
@@ -195,15 +154,15 @@ python custom_metadata_server_example.py
 ### 精确模式 (Accurate Label Mode)
 
 #### 使用场景
-- 知道具体的 E-Hentai/ExHentai 图库URL
+- 知道具体的 E-Hentai/ExHentai 本子URL
 - 搜索无结果或结果不准确时
-- 需要获取特定图库的元数据
+- 需要获取特定本子的元数据
 
 #### 操作步骤
 1. 启用"Accurate label mode"
 2. 下载元数据时，会弹出URL输入对话框
-3. 粘贴完整的图库URL，如: `https://e-hentai.org/g/1234567/abcdef123456/`
-4. 插件直接获取该图库的元数据
+3. 粘贴完整的本子URL，如: `https://e-hentai.org/g/1234567/abcdef123456/`
+4. 插件直接获取该本子的元数据
 
 ## 🐛 故障排除
 
@@ -393,4 +352,10 @@ curl -X POST http://localhost:5000/metadata \
 **Version 1.1.0** - 2021-4-5
 
 - Initial release
+
+**特别感谢**
+
+该插件由wuyingren的[doujinshi_metadata_plugins](https://github.com/yingziwu/doujinshi_metadata_plugins)思路改写。
+
+该数据库来自EhTagTranslation的[Database](https://github.com/EhTagTranslation/Database)数据改造而来
 
