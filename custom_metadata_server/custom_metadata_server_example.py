@@ -68,8 +68,8 @@ CONFIG = {
 # Sample metadata database (in-memory for example)
 # In a real implementation, this would be a database
 SAMPLE_METADATA = {
-    # Key: (title, authors) tuple
-    ('拘束する部活動', ['すもも堂']): {
+    # Key: (title, authors_tuple) tuple - authors must be tuple for hashability
+    ('拘束する部活動', ('すもも堂',)): {
         'title': '拘束する部活動',
         'authors': ['すもも堂'],
         'publisher': 'みらくるバーン',
@@ -88,7 +88,7 @@ SAMPLE_METADATA = {
         'cover_url': 'https://ehgt.org/w/02/312/55359-g5vlf056.webp',
         'identifiers': {'ehentai': '3852762_f65294d2bb_0'}
     },
-    ('イブキとい～っぱいシようねっ♡', ['比宮じょーず']): {
+    ('イブキとい～っぱいシようねっ♡', ('比宮じょーず',)): {
         'title': 'イブキとい～っぱいシようねっ♡',
         'authors': ['比宮じょーず'],
         'publisher': 'みらくるバーン',
@@ -97,27 +97,27 @@ SAMPLE_METADATA = {
             'parody:blue-archive',
             'character:ibuki',
             'female:glasses',
-            'female:school-uniform',
-            'language:chinese',
-            'translator:c.c',
-            'digital:scan'
+            'female:maid',
+            'group:blue-archive',
+            'language:japanese',
+            'translator:ehnd'
         ],
         'rating': 4.5,
-        'cover_url': 'https://ehgt.org/w/01/234/56789-abc123def.webp',
+        'cover_url': 'https://ehgt.org/w/01/123/45678-abc123def.webp',
         'identifiers': {'ehentai': '1234567_abcdef_0'}
     },
-    ('Example Manga', ['Sample Artist']): {
+    ('Example Manga', ('Sample Artist',)): {
         'title': 'Example Manga',
         'authors': ['Sample Artist'],
-        'publisher': 'Sample Circle',
+        'publisher': 'Sample Publisher',
         'tags': [
             'category:manga',
             'female:catgirl',
-            'female:tail',
+            'female:animal ears',
             'language:english',
-            'digital:original'
+            'digital:version'
         ],
-        'rating': 4.2,
+        'rating': 3.8,
         'cover_url': 'https://example.com/cover.jpg',
         'identifiers': {'ehentai': '9999999_xyz_0'}
     }
@@ -184,56 +184,80 @@ def validate_request(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     required_fields = ['schema_version', 'search_type', 'title', 'authors', 'identifiers']
     for field in required_fields:
         if field not in data:
+            error_msg = f'Missing required field: {field}'
+            logger.warning(f"Validation failed - {error_msg}. Data keys: {list(data.keys())}")
             return {
                 'schema_version': PROTOCOL_VERSION,
                 'source': SERVER_NAME,
                 'results': [],
-                'error': f'Missing required field: {field}'
+                'error': error_msg
             }
     
     # Check schema version
     if data['schema_version'] != PROTOCOL_VERSION:
+        error_msg = f'Unsupported schema version: {data["schema_version"]}. Expected: {PROTOCOL_VERSION}'
+        logger.warning(f"Validation failed - {error_msg}")
         return {
             'schema_version': PROTOCOL_VERSION,
             'source': SERVER_NAME,
             'results': [],
-            'error': f'Unsupported schema version: {data["schema_version"]}. Expected: {PROTOCOL_VERSION}'
+            'error': error_msg
         }
     
     # Check search type
     if data['search_type'] not in ['identify', 'cover']:
+        error_msg = f'Invalid search_type: {data["search_type"]}. Expected: "identify" or "cover"'
+        logger.warning(f"Validation failed - {error_msg}")
         return {
             'schema_version': PROTOCOL_VERSION,
             'source': SERVER_NAME,
             'results': [],
-            'error': f'Invalid search_type: {data["search_type"]}. Expected: "identify" or "cover"'
+            'error': error_msg
         }
     
     # Validate types
     if not isinstance(data['title'], str):
+        error_msg = 'title must be a string'
+        logger.warning(f"Validation failed - {error_msg}. title type: {type(data['title'])}, value: {repr(data['title'])}")
         return {
             'schema_version': PROTOCOL_VERSION,
             'source': SERVER_NAME,
             'results': [],
-            'error': 'title must be a string'
+            'error': error_msg
         }
     
-    if not isinstance(data['authors'], list) or not all(isinstance(a, str) for a in data['authors']):
+    if not isinstance(data['authors'], list):
+        error_msg = 'authors must be a list'
+        logger.warning(f"Validation failed - {error_msg}. authors type: {type(data['authors'])}, value: {repr(data['authors'])}")
         return {
             'schema_version': PROTOCOL_VERSION,
             'source': SERVER_NAME,
             'results': [],
-            'error': 'authors must be a list of strings'
+            'error': error_msg
+        }
+    
+    if not all(isinstance(a, str) for a in data['authors']):
+        error_msg = 'authors must be a list of strings'
+        invalid_authors = [(i, repr(a), type(a)) for i, a in enumerate(data['authors']) if not isinstance(a, str)]
+        logger.warning(f"Validation failed - {error_msg}. Invalid authors: {invalid_authors}")
+        return {
+            'schema_version': PROTOCOL_VERSION,
+            'source': SERVER_NAME,
+            'results': [],
+            'error': error_msg
         }
     
     if not isinstance(data['identifiers'], dict):
+        error_msg = 'identifiers must be a dictionary'
+        logger.warning(f"Validation failed - {error_msg}. identifiers type: {type(data['identifiers'])}, value: {repr(data['identifiers'])}")
         return {
             'schema_version': PROTOCOL_VERSION,
             'source': SERVER_NAME,
             'results': [],
-            'error': 'identifiers must be a dictionary'
+            'error': error_msg
         }
     
+    logger.debug(f"Validation passed for request with title: {data['title'][:50]}...")
     return None
 
 
@@ -308,25 +332,37 @@ def metadata_endpoint():
     # Log request
     client_ip = request.remote_addr
     logger.info(f"Metadata request from {client_ip}")
+    logger.debug(f"Request headers: {dict(request.headers)}")
+    logger.debug(f"Request content type: {request.content_type}")
+    logger.debug(f"Request content length: {request.content_length}")
     
     # Check authentication
     auth_error = validate_auth()
     if auth_error:
         logger.warning(f"Authentication failed for {client_ip}")
+        logger.debug(f"Auth headers: {request.headers.get('Authorization', 'None')}")
         return jsonify(auth_error), 401
     
     # Parse request JSON
     try:
         data = request.get_json()
         if not data:
+            logger.warning(f"Empty request body from {client_ip}")
             return jsonify({
                 'schema_version': PROTOCOL_VERSION,
                 'source': SERVER_NAME,
                 'results': [],
                 'error': 'Invalid JSON or empty request body'
             }), 400
+        logger.debug(f"Parsed JSON data keys: {list(data.keys())}")
     except Exception as e:
-        logger.error(f"JSON parse error: {e}")
+        logger.error(f"JSON parse error from {client_ip}: {e}")
+        # Try to read raw body for debugging
+        try:
+            raw_body = request.get_data(as_text=True)
+            logger.debug(f"Raw request body (first 500 chars): {raw_body[:500]}")
+        except:
+            pass
         return jsonify({
             'schema_version': PROTOCOL_VERSION,
             'source': SERVER_NAME,

@@ -285,6 +285,44 @@ def to_metadata(gmetadata: Dict, log) -> Metadata:
     return mi
 
 
+def custom_result_to_metadata(custom_result: Dict, log) -> Metadata:
+    """Convert custom metadata server response to Calibre Metadata object.
+    
+    Args:
+        custom_result: Result dict from custom metadata server.
+        log: Calibre log object.
+    
+    Returns:
+        Calibre Metadata instance.
+    """
+    title = custom_result.get('title', '')
+    authors = custom_result.get('authors', [])
+    publisher = custom_result.get('publisher', '')
+    tags = custom_result.get('tags', [])
+    rating = custom_result.get('rating', 0.0)
+    cover_url = custom_result.get('cover_url', '')
+    identifiers = custom_result.get('identifiers', {})
+    
+    # Build Metadata
+    mi = Metadata(title, authors if authors else ['Unknown'])
+    mi.publisher = publisher or 'Unknown'
+    mi.tags = tags
+    mi.rating = float(rating)
+    
+    # Set identifiers (preserve ehentai identifier if present)
+    if identifiers:
+        mi.identifiers = identifiers
+    elif 'ehentai' in custom_result:
+        # Fallback for old format
+        mi.identifiers = {'ehentai': custom_result['ehentai']}
+    
+    # Set cover URL if available
+    if cover_url:
+        mi.has_ehentai_cover = cover_url
+    
+    return mi
+
+
 # ---------------------------------------------------------------------------
 # Main plugin class
 # ---------------------------------------------------------------------------
@@ -321,9 +359,21 @@ class Ehentai(Source):
         Option('accurate_label', 'bool', False,
                _('Accurate label mode'),
                _('Prompt for exact gallery URL instead of searching')),
+        Option('use_custom_metadata', 'bool', False,
+               _('Enable custom metadata server'),
+               _('Use third-party metadata server when enabled')),
+        Option('custom_metadata_url', 'string', None,
+               _('Custom metadata server URL'),
+               _('Optional: URL of custom metadata server endpoint')),
+        Option('custom_metadata_token', 'string', None,
+               _('Custom metadata auth token'),
+               _('Optional: Bearer token or Basic auth for custom server')),
         Option('use_proxy', 'bool', False,
                _('Use proxy'),
                _('Enable proxy for all requests')),
+        Option('proxy_url', 'string', None,
+               _('Proxy URL'),
+               _('Format: [user:pass@]host:port or http://host:port')),
         Option('ipb_member_id', 'string', None,
                _('ExHentai cookie: ipb_member_id'),
                _('Required for ExHentai access')),
@@ -333,15 +383,6 @@ class Ehentai(Source):
         Option('igneous', 'string', None,
                _('ExHentai cookie: igneous'),
                _('Required for ExHentai access')),
-        Option('proxy_url', 'string', None,
-               _('Proxy URL'),
-               _('Format: [user:pass@]host:port or http://host:port')),
-        Option('custom_metadata_url', 'string', None,
-               _('Custom metadata server URL'),
-               _('Optional: URL of custom metadata server endpoint')),
-        Option('custom_metadata_token', 'string', None,
-               _('Custom metadata auth token'),
-               _('Optional: Bearer token or Basic auth for custom server')),
     )
 
     def __init__(self, *args, **kwargs):
@@ -440,6 +481,34 @@ class Ehentai(Source):
                     gallery_url = dialog.get_url()
             except Exception as e:
                 log.error(f'Accurate label dialog failed: {e}')
+        
+        # Priority 1: Custom Metadata Server (if enabled and configured)
+        custom_results = []
+        if (self.prefs.get('use_custom_metadata') and 
+            self.custom_client.enabled and 
+            self.custom_client.endpoint):
+            try:
+                custom_results = self.custom_client.search(
+                    self.browser,
+                    title=title,
+                    authors=authors,
+                    identifiers=identifiers,
+                    timeout=timeout
+                )
+                if custom_results:
+                    log.info(f'Custom metadata server returned {len(custom_results)} results')
+            except Exception as e:
+                log.error(f'Custom metadata server failed: {e}')
+        
+        # If custom server returned results, use them and skip E-hentai/ExHentai
+        if custom_results:
+            for result in custom_results:
+                try:
+                    mi = custom_result_to_metadata(result, log)
+                    result_queue.put(mi)
+                except Exception as e:
+                    log.error(f'Failed to convert custom result: {e}')
+            return  # Skip E-hentai/ExHentai search
         
         # Build search query or use provided URL
         if gallery_url:

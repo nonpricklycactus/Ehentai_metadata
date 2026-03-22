@@ -54,7 +54,7 @@
 - Accurate Label 界面优化：URL 格式校验，修复布局问题
 - Qt 兼容性：使用 qt.core 导入，适配 Calibre 9.x
 - 最低支持版本：Calibre 9.0.0
-- 破坏性变更：不再需要本地 SQLite 数据库文件
+- 根本性变更：不再需要本地 SQLite 数据库文件
 
 **Version 2.3.2** - 2022-11-22
 

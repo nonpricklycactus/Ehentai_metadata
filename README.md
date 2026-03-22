@@ -14,7 +14,7 @@ This plugin downloads metadata from [E-Hentai Galleries](https://e-hentai.org/).
 - Can retrieve title, author, rating, tags and cover.
 - If you enter the cookies of `exhentai.org`, it can download metadata from [ExHentai.org](https://exhentai.org/).
 - Automatic tag translation to Chinese (fetches latest data from GitHub, no manual database setup required).
-- Support for custom metadata servers to extend metadata sources.
+- Support for custom metadata servers to extend metadata sources. [See example implementation](custom_metadata_server/).
 
 **Special Notes**
 

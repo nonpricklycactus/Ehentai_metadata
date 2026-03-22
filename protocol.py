@@ -6,6 +6,7 @@ from __future__ import (unicode_literals, division, absolute_import, print_funct
 
 import json
 from typing import Dict, List, Optional, Any
+from urllib.parse import urlparse
 
 __license__ = 'GPL v3'
 __copyright__ = '2026, nonpricklycactus'
@@ -56,6 +57,24 @@ class CustomMetadataClient:
         self.auth_token = auth_token
         self.log = log
         self.enabled = bool(endpoint_url and endpoint_url.strip())
+        
+        # Validate endpoint URL format on initialization
+        if self.enabled and not self._validate_endpoint():
+            if self.log:
+                self.log.warning(f'CustomMetadataClient: invalid endpoint URL format: {endpoint_url}')
+            self.enabled = False
+
+    def _validate_endpoint(self) -> bool:
+        """Validate endpoint URL format.
+        
+        Returns:
+            True if URL has valid scheme (http/https) and network location.
+        """
+        try:
+            result = urlparse(self.endpoint)
+            return all([result.scheme in ('http', 'https'), result.netloc])
+        except Exception:
+            return False
 
     def _build_auth_headers(self) -> List[tuple]:
         """Build Authorization headers from auth_token config.
@@ -79,12 +98,12 @@ class CustomMetadataClient:
     def search(
         self,
         browser,
-        title: Optional[str] = None,
+        title: str = '',
         authors: Optional[List[str]] = None,
         identifiers: Optional[Dict[str, str]] = None,
-        timeout: int = 30,
+        timeout: int = 30
     ) -> List[Dict[str, Any]]:
-        """Query custom metadata server for identify results.
+        """Search custom metadata server.
         
         Args:
             browser: Calibre browser instance (clone_browser() called internally).
@@ -99,6 +118,14 @@ class CustomMetadataClient:
         if not self.enabled:
             return []
         
+        # Validate and normalize input parameters
+        if not isinstance(title, str):
+            title = str(title) if title else ''
+        if not isinstance(authors, list):
+            authors = []
+        if not isinstance(identifiers, dict):
+            identifiers = {}
+        
         payload = {
             'schema_version': PROTOCOL_VERSION,
             'search_type': 'identify',
@@ -108,21 +135,86 @@ class CustomMetadataClient:
         }
         
         try:
+            # Log request details for debugging
+            if self.log:
+                self.log.info(f'CustomMetadataClient: sending request to {self.endpoint}')
+                self.log.info(f'CustomMetadataClient: payload={payload}')
+                if auth_headers := self._build_auth_headers():
+                    self.log.info(f'CustomMetadataClient: auth headers present')
+            
             br = browser.clone_browser()
             auth_headers = self._build_auth_headers()
+            
+            # Clear any proxy settings to prevent interference
+            # When use_proxy is not checked, we should not use proxy
+            try:
+                # Clear proxy settings
+                br.set_proxies({})
+                if self.log:
+                    self.log.info(f'CustomMetadataClient: cleared proxy settings')
+            except Exception as e:
+                if self.log:
+                    self.log.info(f'CustomMetadataClient: could not clear proxy settings: {e}')
+            
+            # Build all headers - ensure Content-Type is set for JSON
+            all_headers = {}
+            all_headers['Content-Type'] = 'application/json'
+            all_headers['Accept'] = 'application/json'
             if auth_headers:
-                br.addheaders = auth_headers + [
-                    ('Content-Type', 'application/json'),
-                    ('Accept', 'application/json'),
-                ]
-            else:
-                br.addheaders = [
-                    ('Content-Type', 'application/json'),
-                    ('Accept', 'application/json'),
-                ]
+                # Convert auth_headers (list of tuples) to dict
+                for key, value in auth_headers:
+                    all_headers[key] = value
+            
+            # Debug: log the actual headers being sent
+            if self.log:
+                self.log.info(f'CustomMetadataClient: request headers: {all_headers}')
+                self.log.info(f'CustomMetadataClient: browser type: {type(br)}')
             
             data = json.dumps(payload).encode('utf-8')
-            resp = br.open_novisit(self.endpoint, data=data, timeout=timeout)
+            if self.log:
+                self.log.info(f'CustomMetadataClient: request data length: {len(data)} bytes')
+                self.log.info(f'CustomMetadataClient: request data preview: {data[:100]}...')
+            
+            # Try direct urllib approach first (more reliable for JSON)
+            try:
+                import urllib.request
+                import urllib.error
+                
+                if self.log:
+                    self.log.info(f'CustomMetadataClient: trying direct urllib.request approach')
+                
+                # Create request with headers
+                req = urllib.request.Request(
+                    self.endpoint,
+                    data=data,
+                    headers=all_headers,
+                    method='POST'
+                )
+                
+                # Open with timeout
+                resp = urllib.request.urlopen(req, timeout=timeout)
+                
+                if self.log:
+                    self.log.info(f'CustomMetadataClient: direct urllib.request succeeded')
+                
+            except Exception as urllib_error:
+                if self.log:
+                    self.log.info(f'CustomMetadataClient: direct urllib.request failed: {urllib_error}, falling back to browser')
+                
+                # Fall back to browser method
+                # Clear any existing headers and set ours
+                br.addheaders = []
+                
+                # Convert headers dict to list of tuples for addheaders
+                headers_list = [(k, v) for k, v in all_headers.items()]
+                br.addheaders = headers_list
+                
+                # Debug: check what headers are actually set
+                if self.log:
+                    self.log.info(f'CustomMetadataClient: browser.addheaders after setting: {br.addheaders}')
+                
+                # Make the request
+                resp = br.open_novisit(self.endpoint, data=data, timeout=timeout)
             raw = resp.read()
             response = json.loads(raw.decode('utf-8'))
             
@@ -153,6 +245,20 @@ class CustomMetadataClient:
         except Exception as exc:  # noqa: BLE001
             if self.log:
                 self.log.error(f'CustomMetadataClient: request failed: {exc}')
+                self.log.error(f'CustomMetadataClient: endpoint={self.endpoint}')
+                self.log.error(f'CustomMetadataClient: payload={payload}')
+                # Try to get HTTP status code if available
+                if hasattr(exc, 'code'):
+                    self.log.error(f'CustomMetadataClient: HTTP status={exc.code}')
+                elif hasattr(exc, 'status'):
+                    self.log.error(f'CustomMetadataClient: HTTP status={exc.status}')
+                # Try to get response body if available
+                if hasattr(exc, 'read'):
+                    try:
+                        error_body = exc.read().decode('utf-8', errors='ignore')
+                        self.log.error(f'CustomMetadataClient: response body={error_body[:500]}')
+                    except:
+                        pass
             return []
 
     def __bool__(self) -> bool:

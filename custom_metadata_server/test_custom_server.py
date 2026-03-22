@@ -126,19 +126,19 @@ def test_metadata_endpoint_without_auth():
             
             # Check protocol compliance
             if data.get('schema_version') == '1.0':
-                print("✓ Protocol version correct")
+                print("[OK] Protocol version correct")
             else:
-                print("✗ Protocol version mismatch")
+                print("[ERROR] Protocol version mismatch")
                 
             if 'results' in data:
-                print(f"✓ Found {len(data['results'])} results")
+                print(f"[OK] Found {len(data['results'])} results")
                 if data['results']:
                     result = data['results'][0]
                     print(f"  First result title: {result.get('title')}")
                     print(f"  First result authors: {result.get('authors')}")
                     print(f"  First result tags: {result.get('tags', [])[:3]}...")
             else:
-                print("✗ No 'results' field in response")
+                print("[ERROR] No 'results' field in response")
                 
             if 'error' in data:
                 print(f"Error field: {data['error']}")
@@ -189,15 +189,15 @@ def test_metadata_endpoint_with_auth():
             print(json.dumps(data, indent=2, ensure_ascii=False))
             
             if response.status_code == 200:
-                print("✓ Authentication successful")
+                print("[OK] Authentication successful")
                 if data.get('results'):
-                    print(f"✓ Found {len(data['results'])} metadata results")
+                    print(f"[OK] Found {len(data['results'])} metadata results")
                     return True
                 else:
-                    print("✗ No results found (but authentication worked)")
+                    print("[ERROR] No results found (but authentication worked)")
                     return True
             else:
-                print(f"✗ Request failed with status {response.status_code}")
+                print(f"[ERROR] Request failed with status {response.status_code}")
                 if 'error' in data:
                     print(f"  Error: {data['error']}")
                 return False
@@ -246,14 +246,14 @@ def test_cover_search():
             print(json.dumps(data, indent=2, ensure_ascii=False))
             
             if response.status_code == 200:
-                print("✓ Cover search successful")
+                print("[OK] Cover search successful")
                 if data.get('results'):
                     for result in data['results']:
                         if 'cover_url' in result:
                             print(f"  Cover URL: {result['cover_url']}")
                 return True
             else:
-                print(f"✗ Cover search failed")
+                print(f"[ERROR] Cover search failed")
                 return False
                 
         except json.JSONDecodeError:
@@ -317,6 +317,8 @@ def test_error_cases():
         }
     ]
     
+    all_passed = True
+    
     for test_case in test_cases:
         print(f"\nTest: {test_case['name']}")
         print(f"Request: {json.dumps(test_case['data'], indent=2)}")
@@ -339,21 +341,27 @@ def test_error_cases():
                 if 'error' in data and data['error']:
                     print(f"Error returned: {data['error']}")
                     if test_case['expected_error']:
-                        print("✓ Expected error received")
+                        print("[OK] Expected error received")
                     else:
-                        print("✗ Unexpected error")
+                        print("[ERROR] Unexpected error")
+                        all_passed = False
                 else:
                     print(f"Results: {len(data.get('results', []))}")
                     if not test_case['expected_error']:
-                        print("✓ No error (as expected)")
+                        print("[OK] No error (as expected)")
                     else:
-                        print("✗ Expected error but got results")
+                        print("[ERROR] Expected error but got results")
+                        all_passed = False
                         
             except json.JSONDecodeError:
                 print(f"Response: {response.text[:200]}...")
+                all_passed = False
                 
         except Exception as e:
             print(f"Request failed: {e}")
+            all_passed = False
+    
+    return all_passed
 
 
 def simulate_calibre_plugin_request():
@@ -493,7 +501,7 @@ def main():
     print()
     
     for test_name, success in results:
-        status = "✓ PASS" if success else "✗ FAIL"
+        status = "[PASS]" if success else "[FAIL]"
         print(f"  {status}: {test_name}")
     
     print("\n" + "="*70)
@@ -513,9 +521,9 @@ def main():
     print("="*70)
     
     if passed == total:
-        print("\n✅ All tests passed! Server is ready for use with Calibre plugin.")
+        print("\n[SUCCESS] All tests passed! Server is ready for use with Calibre plugin.")
     else:
-        print(f"\n⚠️  {passed}/{total} tests passed. Some issues need attention.")
+        print(f"\n[WARNING] {passed}/{total} tests passed. Some issues need attention.")
 
 
 if __name__ == "__main__":
