@@ -44,6 +44,52 @@ _CALIBRE_LANGUAGE: Dict[str, str] = {
     '俄语': '俄语',
 }
 
+# Namespace mapping for E-hentai tags that don't have direct equivalents
+# in the EhTagTranslation database.
+_NAMESPACE_MAPPING: Dict[str, str] = {
+    # E-hentai uses 'category' but EhTagTranslation uses 'reclass'
+    'category': 'reclass',
+    # Other potential mappings
+    'parody': 'parody',
+    'character': 'character',
+    'group': 'group',
+    'artist': 'artist',
+    'female': 'female',
+    'male': 'male',
+    'mixed': 'mixed',
+    'other': 'other',
+    'cosplayer': 'cosplayer',
+    'location': 'location',
+    'language': 'language',
+    # Namespaces with hardcoded translations
+    'translator': 'translator',
+    'digital': 'digital',
+    # Default fallback for unknown namespaces
+}
+
+# Hardcoded translations for namespaces not in the EhTagTranslation database
+_HARDCODED_TRANSLATIONS: Dict[str, Dict[str, str]] = {
+    'rows': {
+        'translator': '翻译',
+        'digital': '数字',
+    },
+    'translator': {
+        # Common translation groups
+        'ehnd': 'EHND',
+        'c.c': 'C.C',
+        'fakku': 'Fakku',
+        'irodori': 'Irodori',
+        'project-h': 'Project-H',
+    },
+    'digital': {
+        'version': '版本',
+        'original': '原版',
+        'scan': '扫描版',
+        'web': '网页版',
+        'digital': '数字版',
+    },
+}
+
 
 def _parse_db(raw_json: bytes) -> Dict[str, Dict[str, str]]:
     """Parse db.text.json into {namespace: {raw_tag: translated_name}}.
@@ -175,9 +221,11 @@ class TranslationService:
                 continue
 
             ns_raw, raw_value = parts[0].strip(), parts[1].strip()
-            # E-hentai uses 'group' in tags but DB stores under 'group' too;
-            # keep internal ns alias handling here.
-            ns_lookup = ns_raw
+            # Map namespace if needed (e.g., category -> reclass)
+            # Ensure ns_lookup is always a string
+            ns_lookup = _NAMESPACE_MAPPING.get(ns_raw)
+            if ns_lookup is None:
+                ns_lookup = ns_raw
 
             # Individual comma-separated values (rare but possible).
             for raw in raw_value.split(','):
@@ -192,10 +240,12 @@ class TranslationService:
                     # Map EhTag Chinese name -> Calibre language code.
                     calibre_lang = _CALIBRE_LANGUAGE.get(name, name)
                     languages.append(calibre_lang)
-                    ns_display = self._lookup('rows', ns_raw, ns_raw)
+                    # Use mapped namespace for display name lookup
+                    ns_display = self._lookup('rows', ns_lookup, ns_raw)
                     translated_tags.append(f'{ns_display}:{name}')
                 else:
-                    ns_display = self._lookup('rows', ns_raw, ns_raw)
+                    # Use mapped namespace for display name lookup
+                    ns_display = self._lookup('rows', ns_lookup, ns_raw)
                     translated_tags.append(f'{ns_display}:{name}')
 
         if authors:
@@ -221,6 +271,17 @@ class TranslationService:
         Returns:
             Translated name or *default*.
         """
+        # Check hardcoded translations first
+        if namespace in _HARDCODED_TRANSLATIONS:
+            hc_data = _HARDCODED_TRANSLATIONS[namespace]
+            if raw in hc_data:
+                return hc_data[raw]
+            raw_lower = raw.lower()
+            for k, v in hc_data.items():
+                if k.lower() == raw_lower:
+                    return v
+        
+        # Check database
         ns_data = self._db.get(namespace, {})
         # Exact match first, then case-insensitive.
         if raw in ns_data:
