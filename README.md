@@ -11,8 +11,10 @@ This plugin downloads metadata from [E-Hentai Galleries](https://e-hentai.org/).
 
 **Main Features**
 
-- Can retrieve title, author, rating , tags and cover.
-- If you enter the cookies of `exhentai.org` , it can download metadata from [ExHentai.org](https://exhentai.org/).
+- Can retrieve title, author, rating, tags and cover.
+- If you enter the cookies of `exhentai.org`, it can download metadata from [ExHentai.org](https://exhentai.org/).
+- Automatic tag translation to Chinese (fetches latest data from GitHub, no manual database setup required).
+- Support for custom metadata servers to extend metadata sources.
 
 **Special Notes**
 
@@ -31,14 +33,9 @@ This plugin downloads metadata from [E-Hentai Galleries](https://e-hentai.org/).
 
 **Database configuration**
 
-1. After the plug-in is installed
-2. Install the database file (ehtagTranslation.db) where you want to save it
-3. Select Chinese_Exhentai in the plug-in and enter the location of the database file in the EhTagTranslation_db text box. Such as:
-
-
-&emsp; &emsp; &emsp; &emsp; Position to E: \ Code \ python \ Ehentai_metadata \ EhTagTranslation db
-
-&emsp; &emsp; &emsp; &emsp; Enter a value in the text box E:\Code\python\Ehentai_metadata in the text box
+> ⚠️ As of v3.0.0, manual database configuration is no longer required. The plugin automatically fetches the latest translation data from the GitHub EhTagTranslation repository and caches it for 24 hours.
+>
+> Simply check "Translate tags to Chinese" in the plugin settings.
 
 **Special Thanks**
 
@@ -47,6 +44,19 @@ This plug-in is adapted from the idea of ​​[doujinshi_metadata_plugins](http
 The Database from EhTagTranslation [Database](https://github.com/EhTagTranslation/Database) and data transformation
 
 **Version History:**
+
+**Version 3.0.0** - 2026-03-22
+
+- **Major refactoring for Calibre 9.5.0 compatibility**
+- Modular architecture: split into 6 files (net, proxy, translation, protocol, ui, __init__)
+- Rate limiting: 5-second delay between API bursts (prevents IP bans)
+- Translation: automatic fetching from GitHub EhTagTranslation (no manual database setup)
+- Custom metadata server: JSON protocol v1.0 for third-party integrations
+- Proxy improvements: parse username:password@host:port with auth headers
+- UI improvements: Accurate Label dialog with URL validation and layouts
+- Qt compatibility: qt.core imports for Calibre 9.x
+- Minimum Calibre version: 9.0.0
+- Breaking changes: removed local SQLite database requirement
 
 **Version 2.3.2** - 2022-11-23
 

@@ -10,6 +10,8 @@
 
 - 这个插件可以下载题名、作者、评分、tags、封面。
 - 如果你输入了你在`exhentai.org`的cookies，这个插件可以从[ExHentai.org](https://exhentai.org/)上下载元数据。
+- 可将标签自动翻译为中文（从 GitHub 自动拉取最新翻译数据，无需手动配置数据库）。
+- 支持通过自定义元数据服务器扩展元数据来源。
 
 **一些需要注意的事**
 
@@ -28,13 +30,9 @@
 
 **数据库配置**
 
-1. 安装好插件后
-2. 将数据库文件（EhTagTranslation.db）安装在你想保存位置
-3. 在插件中勾选Chinese_Exhentai，再在下面EhTagTranslation_db文本框中输入数据库文件位置。如：
-
-&emsp;&emsp;&emsp;&emsp;位置为E:\Code\python\Ehentai_metadata\EhTagTranslation.db
-
-&emsp;&emsp;&emsp;&emsp;文本框中填写E:\Code\python\Ehentai_metadata
+> ⚠️ v3.0.0 起不再需要手动配置本地数据库。插件会自动从 GitHub EhTagTranslation 仓库拉取最新翻译数据，并缓存 24 小时。
+>
+> 只需在插件设置中勾选"Translate tags to Chinese"即可。
 
 
 **特别感谢**
@@ -44,6 +42,19 @@
 该数据库来自EhTagTranslation的[Database](https://github.com/EhTagTranslation/Database)数据改造而来
 
 **版本历史**
+
+**Version 3.0.0** - 2026-03-22
+
+- **针对 Calibre 9.5.0 的完整重构**
+- 模块化架构：拆分为 6 个文件（net、proxy、translation、protocol、ui、__init__）
+- 请求限速：API 请求之间自动等待 5 秒，防止被封 IP
+- 标签翻译：从 GitHub EhTagTranslation 自动拉取最新数据（24 小时缓存），无需手动配置数据库
+- 自定义元数据服务器：JSON 协议 v1.0，支持第三方集成
+- 代理配置优化：支持 username:password@host:port 格式，自动生成认证请求头
+- Accurate Label 界面优化：URL 格式校验，修复布局问题
+- Qt 兼容性：使用 qt.core 导入，适配 Calibre 9.x
+- 最低支持版本：Calibre 9.0.0
+- 破坏性变更：不再需要本地 SQLite 数据库文件
 
 **Version 2.3.2** - 2022-11-22
 

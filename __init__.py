@@ -1,721 +1,547 @@
 #!/usr/bin/env python3
-# vim:fileencoding=UTF-8:ts=4:sw=4:sta:et:sts=4:ai
-from __future__ import (unicode_literals, division, absolute_import,
-                        print_function)
-from typing import Dict, List, Set, Union
+# -*- coding: utf-8 -*-
+"""E-hentai/ExHentai metadata source plugin for Calibre.
 
-__license__   = 'GPL v3'
-__copyright__ = '2021, nonpricklycactus <https://github.com/nonpricklycactus/Ehentai_metadata>'
+Downloads metadata (title, authors, publisher, tags, rating, cover) from
+E-hentai.org or ExHentai.org galleries.
+
+Version 3.0.0 - Complete refactoring for Calibre 9.5.0 with modular architecture.
+"""
+
+from __future__ import (unicode_literals, division, absolute_import, print_function)
+
+__license__ = 'GPL v3'
+__copyright__ = '2026, nonpricklycactus <https://github.com/nonpricklycactus/Ehentai_metadata>'
 __docformat__ = 'restructuredtext en'
 
+# Calibre imports
 from calibre.ebooks.metadata.sources.base import Source, Option
 from calibre.ebooks.metadata.book.base import Metadata
 from calibre import as_unicode
 
-import re
-import sys
-import json
-import sqlite3
-import html
-from urllib.parse import urlencode
-from PyQt5 import QtCore,QtWidgets,QtGui
-import difflib
+# Local module imports
+from .net import NetworkClient
+from .proxy import ProxyConfig
+from .translation import TranslationService
+from .protocol import CustomMetadataClient
+from .ui import AccurateLabelDialog
 
-# TODO: fill the LANGUAGE_LIST
+# Standard library
+import re
+import json
+import html
+import os
+import sys
+from typing import Dict, List, Set, Union, Optional
+from urllib.parse import urlencode
+
+# Language mappings for tag parsing
 LANGUAGE_DICT = {
-    'Chinese'   : 'chinese',
+    'Chinese': 'chinese',
     'chinese': 'chinese',
-    '中国語'    : 'chinese',
-    '中国翻訳'  : 'chinese',
+    '中国語': 'chinese',
+    '中国翻訳': 'chinese',
     '中国語翻訳': 'chinese',
-    'Japanese'  : 'japanese',
-    '日語'      : 'japanese',
-    'English'   : 'english',
-    '英訳' : 'english',
-    'Spanish'   : 'spanish',
-    'French'    : 'french',
-    'Russian'   : 'russian',
+    'Japanese': 'japanese',
+    '日語': 'japanese',
+    'English': 'english',
+    '英訳': 'english',
+    'Spanish': 'spanish',
+    'French': 'french',
+    'Russian': 'russian',
 }
 
-# TODO: fill the OTHER_LIST
 OTHER_DICT = {
-    'Digital'   : 'digital',
-    'DL版'      : 'digital',
+    'Digital': 'digital',
+    'DL版': 'digital',
     'Full Color': 'full color',
-    '全彩'      : 'full color',
+    '全彩': 'full color',
     'Uncensored': 'uncensored',
     'Decensored': 'uncensored',
-    '無修正'    : 'uncensored',
-}
-
-CALIBRELANGUAGES_DICT={
-'汉语':'中文',
-'韩语':'朝鲜语',
-'日语':'日语',
-'英语':'英语',
-'俄语':'俄语'
+    '無修正': 'uncensored',
 }
 
 
-def getName(list,i):
-    try:
-        return list[i]
-    except:
-        return ""
-
-def findName(conn,comment,raw):
-    try:
-        str = conn.execute(comment).fetchone()[0]
-        if ")" in str:
-            pattern = re.compile('\)(.*)')
-            str = pattern.search(str).group(1)
-        return str
-    except:
-        return raw
-
-def traslate(sqlitUrl,gmetadata):
-    conn = sqlite3.connect(sqlitUrl)
-    c = conn.cursor()
-    tranTag = []
-
-    orLanguage = []
-    languages = []
-    if len(gmetadata.languages)>0:
-        for language in gmetadata.languages:
-            Newlanguage = findName(c,"SELECT name from language WHERE raw like '{raw}'".format(raw=language),language)
-            orLanguage.append(Newlanguage)
-  #  gmetadata.languages=orLanguage
-          #  languages.append(Newlanguage)
-
-    groups = []
-    authors = []
-    for tag in gmetadata.tags:
-        taglist = tag.split(":")
-        tableName = getName(taglist,0)
-        nameSpace = findName(c,"SELECT name from rows WHERE key like '{key}'".format(key=tableName),tableName)
-        if tableName == "group":
-            tableName = "groups"
-        raws = getName(taglist,1).split(",")
-        if len(taglist) == 1:
-            comment = "SELECT name from reclass WHERE raw like '{raw}'".format(raw=taglist[0])
-            Newtag = findName(c, comment, taglist[0])
-            tranTag.append(Newtag)
-            continue
-        for raw in raws:
-            comment = "SELECT name from {table} WHERE raw like '{raw}'".format(table=tableName, raw=raw)
-            Newtag = findName(c,comment,raw)
-            if tableName == "groups":
-                groups.append(Newtag)
-               # gmetadata.publisher = Newtag
-            elif tableName == "artist":
-                authors.append(Newtag)
-            else:
-                if tableName == "language":
-                    if Newtag in CALIBRELANGUAGES_DICT:
-                        languages.append(CALIBRELANGUAGES_DICT[Newtag])
-                Newtag = nameSpace + ":" + Newtag
-                tranTag.append(Newtag)
-
-    if len(languages)>0:
-        gmetadata.languages = list(languages)
-    res = ""
-    for s in groups:
-        if len(groups) <= 1:
-            gmetadata.publisher = s
-        res = res+s+'&'
-    gmetadata.publisher = res.strip('&')
-    gmetadata.authors = authors
-    gmetadata.tags = tranTag
-    conn.close()
+# ---------------------------------------------------------------------------
+# Title parsing
+# ---------------------------------------------------------------------------
 
 
 class FieldFromTitle:
+    """Parsed fields extracted from E-hentai gallery title strings."""
+
     def __init__(
         self,
         title: str,
-        author: Union[str, None],
-        publisher: Union[str, None],
-        magazine_or_parody: Union[str, None],
-        addtions: List[str]
-    ):
-        self.publisher              = publisher
-        self.title                  = title
-        self.author                 = author
-        self.magazine_or_parody     = magazine_or_parody
-        self.addtions               = addtions
-        
-def optional(pattern : str):
+        author: Optional[str],
+        publisher: Optional[str],
+        magazine_or_parody: Optional[str],
+        additions: List[str],
+    ) -> None:
+        self.title = title
+        self.author = author
+        self.publisher = publisher
+        self.magazine_or_parody = magazine_or_parody
+        self.additions = additions
+
+
+def _optional(pattern: str) -> str:
+    """Wrap *pattern* in a non-capturing optional group."""
     return '(?:' + pattern + ')?'
 
-def extractFieldFromTitle(title: str, log):
-    pattern = re.compile(
-          r'^\s*'                                               # match spaces                  (optional)
-        + optional(r'\((?P<publisher>[^\(\)]+)\)')              # match publisher, such as C99  (optional)
-        + r'\s*'                                                # match spaces                  (optional)
-        + optional(r'\[(?P<author>[^\[\]]+)\]')                 # match author                  (optional)
-        + r'\s*'                                                # match spaces                  (optional)
-        + r'(?P<title>[^\[\]\(\)]+)'                            # match title                   (must, need strip)
-        + r'\s*'                                                # match spaces                  (optional)
-        + optional(r'\((?P<magazine_or_parody>[^\(\)]+)\)')     # match magazine_or_parody      (optional)
-        + r'\s*'                                                # match spaces                  (optional)
-        + optional(r'\[(?P<addtional1>[^\[\]]+)\]')             # match addtional_field_1       (optional)
-        + r'\s*'                                                # match spaces                  (optional)
-        + optional(r'\[(?P<addtional2>[^\[\]]+)\]')             # match addtional_field_2       (optional)
-        + r'\s*'                                                # match spaces                  (optional)
-        + optional(r'\[(?P<addtional3>[^\[\]]+)\]')             # match addtional_field_3       (optional)
-    )
 
-    match = re.match(pattern, title)
+# Pre-compiled title pattern:
+# (publisher) [author] title (magazine_or_parody) [add1] [add2] [add3]
+_TITLE_RE = re.compile(
+    r'^\s*'
+    + _optional(r'\((?P<publisher>[^\(\)]+)\)')
+    + r'\s*'
+    + _optional(r'\[(?P<author>[^\[\]]+)\]')
+    + r'\s*'
+    + r'(?P<title>[^\[\]\(\)]+)'
+    + r'\s*'
+    + _optional(r'\((?P<magazine_or_parody>[^\(\)]+)\)')
+    + r'\s*'
+    + _optional(r'\[(?P<add1>[^\[\]]+)\]')
+    + r'\s*'
+    + _optional(r'\[(?P<add2>[^\[\]]+)\]')
+    + r'\s*'
+    + _optional(r'\[(?P<add3>[^\[\]]+)\]')
+)
 
+
+def extract_field_from_title(title: str, log) -> FieldFromTitle:
+    """Parse structured fields out of an E-hentai gallery title.
+
+    Args:
+        title: Raw title string from API.
+        log: Calibre log object.
+
+    Returns:
+        FieldFromTitle with parsed components.
+    """
+    match = _TITLE_RE.match(title)
     if match:
-        publisher = match.group('publisher')
-        author = match.group('author')
-        re_title = match.group('title').strip()
-        magazine_or_parody = match.group('magazine_or_parody')
-        addtions_with_none: List[Union[str, None]] = [match.group('addtional1'), match.group('addtional2'), match.group('addtional3')]
-        addtions_without_none = [x for x in addtions_with_none if isinstance(x, str)]
-    else:
-        publisher = None
-        author = None
-        re_title = title
-        magazine_or_parody = None
-        addtions_without_none = []
-        log.exception('Title match failed. Title is %s' % title)
-
+        add_raw: List[Optional[str]] = [
+            match.group('add1'),
+            match.group('add2'),
+            match.group('add3'),
+        ]
+        return FieldFromTitle(
+            title=match.group('title').strip(),
+            author=match.group('author'),
+            publisher=match.group('publisher'),
+            magazine_or_parody=match.group('magazine_or_parody'),
+            additions=[x for x in add_raw if x is not None],
+        )
+    log.exception('Title regex match failed for: %s' % title)
     return FieldFromTitle(
-        publisher           = publisher,
-        title               = re_title,
-        author              = author,
-        magazine_or_parody  = magazine_or_parody,
-        addtions            = addtions_without_none,
+        title=title,
+        author=None,
+        publisher=None,
+        magazine_or_parody=None,
+        additions=[],
     )
 
 
-def toMetadata(log, gmetadata, ExHentai_Status, Chinese_Status,sqlitUrl):  # {{{
-    title = gmetadata['title']
-    title_jpn = gmetadata['title_jpn']
-    tags = gmetadata['tags']
-    rating = gmetadata['rating']
-    category = gmetadata['category']
-    gid = gmetadata['gid']
-    token = gmetadata['token']
-    thumb = gmetadata['thumb']
-    #uploader = gmetadata['uploader']
+def is_subsequence(short: str, long: str) -> bool:
+    """Return True if *short* is a subsequence of *long*.
 
-    # determine if magazine_or_parody is magazine or parody
-    is_parody = False
-    has_jpn_title = bool(title_jpn)
+    Used to filter API results by title relevance.
 
-    # title
-    field_from_title = extractFieldFromTitle(title_jpn if title_jpn else title, log)
-    title_ = field_from_title.title
-    publisher = field_from_title.publisher
-    author = field_from_title.author if field_from_title.author else 'Unknown'
-    magazine_or_parody = field_from_title.magazine_or_parody
-    addtional = field_from_title.addtions
+    Args:
+        short: The shorter string to search for.
+        long: The longer string to search in.
 
-    authors = [(author)]
+    Returns:
+        True if all chars of *short* appear in *long* in order.
+    """
+    it = iter(long)
+    return all(ch in it for ch in short)
 
-    mi = Metadata(title_, authors)
-    mi.identifiers = {'ehentai': '%s_%s_%d' % (str(gid), str(token), int(ExHentai_Status))}
-    mi.publisher = publisher if publisher else 'Unknown'
 
-    # tags and languages
-    tags_ : Set[str] = set()
+# ---------------------------------------------------------------------------
+# Metadata conversion
+# ---------------------------------------------------------------------------
+
+
+def to_metadata(gmetadata: Dict, log) -> Metadata:
+    """Convert E-hentai API response dict to Calibre Metadata object.
+
+    Args:
+        gmetadata: Gallery metadata dict from API.
+        log: Calibre log object.
+
+    Returns:
+        Calibre Metadata instance.
+    """
+    title = gmetadata.get('title', '')
+    title_jpn = gmetadata.get('title_jpn', '')
+    tags = gmetadata.get('tags', [])
+    rating = gmetadata.get('rating', 0.0)
+    category = gmetadata.get('category', '')
+    gid = gmetadata.get('gid', 0)
+    token = gmetadata.get('token', '')
+    thumb = gmetadata.get('thumb', '')
+
+    # Parse title structure
+    has_jpn = bool(title_jpn)
+    parsed = extract_field_from_title(title_jpn if has_jpn else title, log)
+
+    # Build Metadata
+    mi = Metadata(parsed.title, [parsed.author or 'Unknown'])
+    mi.identifiers = {'ehentai': f'{gid}_{token}_0'}
+    mi.publisher = parsed.publisher or 'Unknown'
+
+    # Process tags
+    tags_set: Set[str] = set()
     languages: Set[str] = set()
+    is_parody = False
+
     for tag in tags:
-        tags_.add(tag)
-        if re.match('language', tag):
-            tag_ = re.sub('language:', '', tag)
-            if tag_ != 'translated':
-                languages.add(tag_)
-        elif re.match('parody', tag):
-            is_parody = True 
+        tags_set.add(tag)
+        if tag.startswith('language:'):
+            lang = tag.replace('language:', '', 1)
+            if lang != 'translated':
+                languages.add(lang)
+        elif tag.startswith('parody:'):
+            is_parody = True
 
-    tags_.add('category:%s' % category)
+    tags_set.add(f'category:{category}')
 
-    # add magazine to tag if it has magazine attribute
-    if not is_parody and magazine_or_parody:
-        tags_.add('magazine:%s' % magazine_or_parody)
+    # Add magazine tag if not parody
+    if not is_parody and parsed.magazine_or_parody:
+        tags_set.add(f'magazine:{parsed.magazine_or_parody}')
 
-    # add uploader to tag
-    # tags_.add('uploader:%s' % uploader)
+    # Process additions from both titles
+    all_additions = parsed.additions
+    if has_jpn:
+        all_additions += extract_field_from_title(title, log).additions
 
-    for addtion in extractFieldFromTitle(title, log).addtions + (addtional if has_jpn_title else []):
-        if addtion in OTHER_DICT:
-            tags_.add('other:%s' % OTHER_DICT[addtion])
-        elif addtion in LANGUAGE_DICT:
-            tags_.add('language:%s' % LANGUAGE_DICT[addtion])
-            languages.add(LANGUAGE_DICT[addtion])
+    for add in all_additions:
+        if add in OTHER_DICT:
+            tags_set.add(f'other:{OTHER_DICT[add]}')
+        elif add in LANGUAGE_DICT:
+            lang_tag = LANGUAGE_DICT[add]
+            tags_set.add(f'language:{lang_tag}')
+            languages.add(lang_tag)
         else:
-            dataPattern = re.compile(u'^\d{4}[-|年]\d{1,2}')
-            if dataPattern.search(addtion):
-                continue
-            # assume addtion fields that aren't languages nor other tags are translators
-            tags_.add('translator:%s' % addtion)
+            # Skip date patterns
+            if not re.match(r'^\d{4}[-年]\d{1,2}', add):
+                tags_set.add(f'translator:{add}')
 
-    if not languages and has_jpn_title:
+    # Default language for Japanese titles
+    if not languages and has_jpn:
         languages.add('japanese')
 
-
-    mi.tags = list(tags_)
+    mi.tags = list(tags_set)
     mi.languages = list(languages)
-
-    # rating
     mi.rating = float(rating)
-
-    # cover
-    mi.has_ehentai_cover = None
-    if thumb:
-        mi.has_ehentai_cover = thumb
-
-    if Chinese_Status:
-        traslate(sqlitUrl,mi)
+    mi.has_ehentai_cover = thumb if thumb else None
 
     return mi
-    # }}}
 
-class getUrlUI():
-    def __init__(self):
-        super().__init__()
 
-    def setUI(self,w):
-        #设置工具窗口的大小，前两个参数决定窗口的位置
-        w.setGeometry(300,300,500,100)
-        #设置工具窗口的标题
-        w.setWindowTitle("精确获取标签")
-        #设置窗口的图标
-        #w.setWindowIcon(QtGui.QIcon('x.jpg'))
+# ---------------------------------------------------------------------------
+# Main plugin class
+# ---------------------------------------------------------------------------
 
-        # 添加文本标签
-        self.label = QtWidgets.QLabel(w)
-        # 设置标签的左边距，上边距，宽，高
-        self.label.setGeometry(QtCore.QRect(60, 20, 150, 45))
-        # 设置文本标签的字体和大小，粗细等
-        self.label.setFont(QtGui.QFont("Roman times",20))
-        self.label.setText("url:")
-        #添加设置一个文本框
-        self.text = QtWidgets.QLineEdit(w)
-        #调整文本框的位置大小
-        self.text.setGeometry(QtCore.QRect(150,30,180,30))
-        #添加提交按钮和单击事件
-        self.btn = QtWidgets.QPushButton(w)
-        #设置按钮的位置大小
-        self.btn.setGeometry(QtCore.QRect(150,140,70,30))
-        #设置按钮的位置，x坐标,y坐标
-        self.btn.move(400,30)
-        self.btn.setText("提交")
-        #为按钮添加单击事件
-        self.btn.clicked.connect(self.getText)
-        # 按钮点下后自动关闭当前界面
-        self.btn.clicked.connect(w.close)
-        w.show()
-
-    def getText(self):
-        global accurate_url
-        accurate_url = self.text.text()
 
 class Ehentai(Source):
+    """E-hentai/ExHentai metadata source plugin for Calibre."""
+
     name = 'E-hentai Galleries'
     author = 'nonpricklycactus'
-    version = (2, 3, 3)
-    minimum_calibre_version = (1, 0, 0)
-
-    description = _('Download metadata and cover from e-hentai.org.'
-                    'Useful only for nonpricklycactus.')
+    version = (3, 0, 0)
+    minimum_calibre_version = (9, 0, 0)
+    description = _('Download metadata and covers from E-hentai.org or ExHentai.org')
 
     capabilities = frozenset(['identify', 'cover'])
-    touched_fields = frozenset(['title', 'authors', 'tags', 'rating', 'publisher', 'identifier:ehentai'])
+    touched_fields = frozenset([
+        'title', 'authors', 'tags', 'rating', 'publisher', 'identifier:ehentai'
+    ])
     supports_gzip_transfer_encoding = True
     cached_cover_url_is_reliable = True
 
-    EHentai_url = 'https://e-hentai.org/g/%s/%s/'
-    ExHentai_url = 'https://exhentai.org/g/%s/%s/'
-
-    sqlitUrl = "E:\Environment\EhTagTranslation.db"
+    # API endpoints
+    EHENTAI_URL = 'https://e-hentai.org/g/%s/%s/'
+    EXHENTAI_URL = 'https://exhentai.org/g/%s/%s/'
+    API_URL = 'https://api.e-hentai.org/api.php'
 
     options = (
-        Option('Use_Exhentai', 'bool', False, _('Use Exhentai'),
-               _('If Use Exhentai is True, the plugin will search metadata on exhentai.')),
-        Option('Chinese_Exhentai', 'bool', False, _('Chinese Exhentai'),
-               _('If Use Chinese Exhentai is True, This plugin will translate metadata into Chinese.')),
-        Option('Accurate_Label', 'bool', False, _('Accurate_Label'),
-               _('如果勾选Accurate_Label，那么将只会获取给定accurate_url页面的tag')),
-        Option('Use_Proxy','bool',False,_('Use Proxy'),
-               _('If Use Proxy is True, the plugin will search metadata by proxy.')),
-        Option('ipb_member_id', 'string', None, _('ipb_member_id'),
-               _('If Use Exhentai is True, please input your cookies.')),
-        Option('ipb_pass_hash', 'string', None, _('ipb_pass_hash'),
-               _('If Use Exhentai is True, please input your cookies.')),
-        Option('igneous', 'string', None, _('igneous'),
-               _('If Use Exhentai is True, please input your cookies.')),
-        Option('Proxylink','string',None,_('Proxylink'), # 127.0.0.1:8080
-               _('If Use Proxy is True, please input your proxy. example: username:password@proxy.com:8080 or http(s)Proxy')),
-        Option('EhTagTranslation_db', 'string', None, _('EhTagTranslation_db'),
-               _('Translate the location of the database files(翻译数据库文件所在位置)')
-
-               )
+        Option('use_exhentai', 'bool', False,
+               _('Use ExHentai'),
+               _('Search ExHentai instead of E-hentai (requires cookies)')),
+        Option('translate_tags', 'bool', False,
+               _('Translate tags to Chinese'),
+               _('Fetch translations from EhTagTranslation GitHub repository')),
+        Option('accurate_label', 'bool', False,
+               _('Accurate label mode'),
+               _('Prompt for exact gallery URL instead of searching')),
+        Option('use_proxy', 'bool', False,
+               _('Use proxy'),
+               _('Enable proxy for all requests')),
+        Option('ipb_member_id', 'string', None,
+               _('ExHentai cookie: ipb_member_id'),
+               _('Required for ExHentai access')),
+        Option('ipb_pass_hash', 'string', None,
+               _('ExHentai cookie: ipb_pass_hash'),
+               _('Required for ExHentai access')),
+        Option('igneous', 'string', None,
+               _('ExHentai cookie: igneous'),
+               _('Required for ExHentai access')),
+        Option('proxy_url', 'string', None,
+               _('Proxy URL'),
+               _('Format: [user:pass@]host:port or http://host:port')),
+        Option('custom_metadata_url', 'string', None,
+               _('Custom metadata server URL'),
+               _('Optional: URL of custom metadata server endpoint')),
+        Option('custom_metadata_token', 'string', None,
+               _('Custom metadata auth token'),
+               _('Optional: Bearer token or Basic auth for custom server')),
     )
 
-    config_help_message = ('<p>' + _('To Download Metadata from exhentai.org you must sign up'
-                                     ' a free account and get the cookies of .exhentai.org.'
-                                     ' If you don\'t have an account, you can <a href="%s">sign up</a>.')) % 'https://forums.e-hentai.org/index.php'
-
-    def __init__(self, *args, **kwargs):  # {{{
+    def __init__(self, *args, **kwargs):
         Source.__init__(self, *args, **kwargs)
-        self.config_exhentai()
-        self.config_chinese()
-        self.config_tags()
-        self.config_proxy()
-    # }}}
+        self._init_services()
 
-    def config_tags(self):
-        self.Accurate_Label = self.prefs['Accurate_Label']
-        return
+    def _init_services(self):
+        """Initialize all service modules."""
+        # Network client with rate limiting
+        self.net = NetworkClient(self.browser, rate_limit_seconds=5.0)
+        
+        # Proxy configuration
+        proxy_url = self.prefs.get('proxy_url')
+        self.proxy_config = ProxyConfig(proxy_url)
+        
+        # Translation service
+        cache_dir = os.path.join(os.path.dirname(__file__), '.cache')
+        self.translation = TranslationService(cache_dir, self.log)
+        
+        # Custom metadata client
+        custom_url = self.prefs.get('custom_metadata_url')
+        custom_token = self.prefs.get('custom_metadata_token')
+        self.custom_client = CustomMetadataClient(custom_url, custom_token, self.log)
+        
+        # ExHentai cookies
+        self.exhentai_cookies = self._build_exhentai_cookies()
+        
+    def _build_exhentai_cookies(self) -> List[Dict]:
+        """Build ExHentai cookie list from preferences."""
+        if not self.prefs.get('use_exhentai'):
+            return []
+        
+        cookies = [
+            {'name': 'ipb_member_id', 'value': self.prefs.get('ipb_member_id'),
+             'domain': '.exhentai.org', 'path': '/'},
+            {'name': 'ipb_pass_hash', 'value': self.prefs.get('ipb_pass_hash'),
+             'domain': '.exhentai.org', 'path': '/'},
+            {'name': 'igneous', 'value': self.prefs.get('igneous'),
+             'domain': '.exhentai.org', 'path': '/'},
+        ]
+        
+        # Validate all cookies present
+        if any(c['value'] is None for c in cookies):
+            return []
+        
+        return cookies
 
-    def config_proxy(self): # {{{
-
-        Proxy_Status = self.prefs['Use_Proxy']
-        Proxy = {'http': self.prefs['Proxylink'], 'https': self.prefs['Proxylink']}
-        self.Proxy_Status = Proxy_Status
-        self.Proxy = Proxy
-    # }}}
-
-
-    def config_chinese(self):
-        self.Chinese_Status = self.prefs['Chinese_Exhentai']
-        EhTagTranslation_db = self.prefs['EhTagTranslation_db']
-        if self.Chinese_Status is True:
-            self.sqlitUrl = EhTagTranslation_db + "\EhTagTranslation.db"
-        return
-
-    def config_exhentai(self):  # {{{
-
-        ExHentai_Status = self.prefs['Use_Exhentai']
-        ExHentai_Cookies = [
-            {'name': 'ipb_member_id', 'value': self.prefs['ipb_member_id'], 'domain': '.exhentai.org', 'path': '/'},
-            {'name': 'igneous', 'value': self.prefs['igneous'], 'domain': '.exhentai.org', 'path': '/'},
-            {'name': 'ipb_pass_hash', 'value': self.prefs['ipb_pass_hash'], 'domain': '.exhentai.org', 'path': '/'}]
-
-        if ExHentai_Status is True:
-            for cookie in ExHentai_Cookies:
-                if cookie['value'] is None:
-                    ExHentai_Status = False
-                    break
-
-        self.ExHentai_Status = ExHentai_Status
-        self.ExHentai_Cookies = ExHentai_Cookies
-        return
-
-    # }}}
-
-    def create_query(self, log, title=None, authors=None , identifiers={}, is_exhentai=False, chinese_tags = False):  # {{{
-
-        EHentai_SEARCH_URL = 'https://e-hentai.org/?'
-        ExHentai_SEARCH_URL = 'https://exhentai.org/?'
-        reTitle = ''
-        if title:
-            def build_term(type, parts):
-                return ' '.join(x for x in parts)
-            title_token = list(self.get_title_tokens(title))
-            if title_token:
-                reTitle = reTitle + build_term('title', title_token)
-        reTitle = reTitle.strip()
-        if not reTitle:
-            return None
-        if isinstance(reTitle, str):
-            if ('Chinese' in reTitle) or ('chinese' in reTitle) or ('汉化' in reTitle) or ('中国' in reTitle):
-                reTitle = reTitle + '+l:chinese'
-            reTitle = reTitle.encode('utf-8')
-
-        q_dict = {'f_cats':0,'f_search': reTitle}
-        if is_exhentai is False:
-            url = EHentai_SEARCH_URL + urlencode(q_dict)
-        else:
-            url = ExHentai_SEARCH_URL + urlencode(q_dict)
-
-        return url
-
-    # }}}
-
-    def create_query_detail(self, log, title=None, authors=None , identifiers={}, is_exhentai=False):  # {{{
-
-        EHentai_SEARCH_URL = 'https://e-hentai.org/?'
-        ExHentai_SEARCH_URL = 'https://exhentai.org/?'
-
-        reTitle = ''
-
-        if title or authors:
-            def build_term(type, parts):
-                return ' '.join(x for x in parts)
-
-            title_token = list(self.get_title_tokens(title))
-            if title_token:
-                reTitle = reTitle + build_term('title', title_token)
-            if len(reTitle)<40:
-                if authors is not None:
-                    if ('未知' not in authors) or ('Unknown' not in authors):
-                        author_token = list(self.get_author_tokens(authors, only_first_author=True))
-                        if author_token:
-                            reTitle = reTitle + (' ' if reTitle != '' else '') + build_term('author', author_token)
-            else:
-                pattern = re.compile(
-                    r'(?P<comments>.*?\[(?P<author>(?:(?!汉化|漢化|CE家族|天鵝之戀)[^\[\]])*)\](?:\s*(?:\[[^\(\)]+\]|\([^\[\]\(\)]+\))\s*)*(?P<title>[^\[\]\(\)]+).*)')
-                match = re.search(pattern,reTitle)
-                title = match.group('title')
-                comments = match.group('comments')
-                author = match.group('author')
-                if len(title) < 45:
-                    reTitle = title + ' ' + author
-                else:
-                    reTitle = title
-                    slen = (45 if len(reTitle) > 45 else len(reTitle))
-                    reTitle = reTitle[0:slen]
-                for k in LANGUAGE_DICT:
-                    if k in comments:
-                        reTitle = reTitle + ' '+k
-
-        reTitle = str(reTitle).strip()
-        log.info('The current secondary search title is ',reTitle)
-        if isinstance(reTitle, str):
-            reTitle = reTitle.encode('utf-8')
-        if not reTitle:
-            return None
-        '''
-        q_dict = {'f_doujinshi': 1, 'f_manga': 1, 'f_artistcg': 1, 'f_gamecg': 1, 'f_western': 1, 'f_non-h': 1,
-                  'f_imageset': 1, 'f_cosplay': 1, 'f_asianporn': 1, 'f_misc': 1, 'f_search': q,
-                  'f_apply': 'Apply+Filter',
-                  'advsearch': 1, 'f_sname': 'on','f_sh': 'on', 'f_srdd': 2}
-        '''
-        q_dict = {'f_cats':0,'f_search': reTitle}
-        if is_exhentai is False:
-            url = EHentai_SEARCH_URL + urlencode(q_dict)
-        else:
-            url = ExHentai_SEARCH_URL + urlencode(q_dict)
-        #print("查询连接：",url)
-        return url
-
-    # }}}
-
-    def get_gallery_info(self, log, raw):  # {{{
-        pattern = re.compile(
-            r'https:\/\/(?:e-hentai\.org|exhentai\.org)\/g\/(?P<gallery_id>\d+)/(?P<gallery_token>\w+)/')
-        results = re.findall(pattern, raw)
-        if not results:
-            log.exception('Failed to get gallery_id and gallery_token!')
-            return None
-        gidlist = []
-        for r in results:
-            gidlist.append(list(r))
-        return gidlist
-
-    def isSubsequence(self,s: str, t: str) -> bool:
-        n, m = len(s), len(t)
-        i = j = 0
-        while i < n and j < m:
-            if s[i] == t[j]:
-                i += 1
-            j += 1
-        return i == n
-
-    def get_all_details(self, gidlist, log, abort, result_queue, timeout,title):  # {{{
-
-        EHentai_API_url = 'https://api.e-hentai.org/api.php'
-        br = self.browser
-        use_proxy = self.Proxy_Status
-        proxy = self.Proxy
-
-        data = {"method": "gdata", "gidlist": gidlist, "namespace": 1}
-        data = json.dumps(data)
-
-        if use_proxy is True:
-            br.set_proxies(proxies=proxy,proxy_bypass=lambda hostname: False)
-
-        try:
-            raw = br.open_novisit(EHentai_API_url, data=data, timeout=timeout).read()
-        except Exception as e:
-            log.exception('Failed to make api request.', e)
-            return
-
-        gmetadatas = json.loads(raw)['gmetadata']
-        Newgmetadatas = []
-        for gmetadata in gmetadatas:
-            gmetadata['title_jpn'] = html.unescape(gmetadata['title_jpn'])
-            if self.isSubsequence(title,gmetadata['title_jpn']):
-                Newgmetadatas.append(gmetadata)
-        if len(Newgmetadatas)>0:
-            gmetadatas = Newgmetadatas
-        for relevance, gmetadata in enumerate(gmetadatas):
+    def identify(self, log, result_queue, abort, title=None, authors=None, 
+                 identifiers=None, timeout=30):
+        """Main entry point for metadata identification."""
+        identifiers = identifiers or {}
+        use_exhentai = bool(self.exhentai_cookies)
+        
+        # Accurate label mode - prompt for URL
+        gallery_url = None
+        if self.prefs.get('accurate_label'):
             try:
-                ans = toMetadata(log, gmetadata, self.ExHentai_Status,self.Chinese_Status,self.sqlitUrl)
-                if isinstance(ans, Metadata):
-                    ans.source_relevance = relevance
-                    db = ans.identifiers['ehentai']
-                    if ans.has_ehentai_cover:
-                        self.cache_identifier_to_cover_url(db, ans.has_ehentai_cover)
-                    #self.clean_downloaded_metadata(ans)
-                    result_queue.put(ans)
-            except:
-                log.exception('Failed to get metadata for identify entry:', gmetadata)
+                from calibre.gui2 import must_use_qt
+                must_use_qt()
+                dialog = AccurateLabelDialog()
+                if dialog.exec_():
+                    gallery_url = dialog.get_url()
+            except Exception as e:
+                log.error(f'Accurate label dialog failed: {e}')
+        
+        # Build search query or use provided URL
+        if gallery_url:
+            raw_html = gallery_url
+        else:
+            query_url = self._build_search_url(title, authors, use_exhentai)
+            if not query_url:
+                log.error('Insufficient metadata to construct query')
+                return
+            
+            try:
+                resp = self.net.request(
+                    query_url,
+                    proxy=self.proxy_config.get_proxy_dict(),
+                    cookies=self.exhentai_cookies,
+                    timeout=timeout,
+                    abort=abort
+                )
+                raw_html = resp.read().decode('unicode_escape')
+            except Exception as e:
+                log.error(f'Search request failed: {e}')
+                return
+        
+        # Extract gallery IDs
+        gidlist = self._extract_gallery_ids(raw_html, log)
+        if not gidlist:
+            log.error('No galleries found in search results')
+            return
+        
+        # Fetch detailed metadata
+        self._fetch_all_details(gidlist, log, abort, result_queue, timeout, title or '')
+
+    def _build_search_url(self, title, authors, use_exhentai):
+        """Build E-hentai search URL from title/authors."""
+        if not title:
+            return None
+        
+        tokens = list(self.get_title_tokens(title))
+        if not tokens:
+            return None
+        
+        query = ' '.join(tokens)
+        if 'chinese' in query.lower() or '汉化' in query or '中国' in query:
+            query += ' l:chinese'
+        
+        base = 'https://exhentai.org/?' if use_exhentai else 'https://e-hentai.org/?'
+        params = {'f_cats': 0, 'f_search': query.encode('utf-8')}
+        return base + urlencode(params)
+
+    def _extract_gallery_ids(self, html, log):
+        """Extract gallery ID/token pairs from search results HTML."""
+        pattern = re.compile(
+            r'https://(?:e-hentai\.org|exhentai\.org)/g/(\d+)/([a-f0-9]+)/'
+        )
+        matches = pattern.findall(html)
+        return [[int(gid), token] for gid, token in matches] if matches else []
+
+    def _fetch_all_details(self, gidlist, log, abort, result_queue, timeout, title):
+        """Fetch detailed metadata from E-hentai API."""
+        payload = {
+            'method': 'gdata',
+            'gidlist': gidlist[:25],  # API limit: 25 per request
+            'namespace': 1
+        }
+        
+        try:
+            resp = self.net.request(
+                self.API_URL,
+                method='POST',
+                data=json.dumps(payload).encode('utf-8'),
+                proxy=self.proxy_config.get_proxy_dict(),
+                timeout=timeout,
+                abort=abort
+            )
+            data = json.loads(resp.read())
+            gmetadatas = data.get('gmetadata', [])
+        except Exception as e:
+            log.error(f'API request failed: {e}')
+            return
+        
+        # Filter by title relevance
+        if title:
+            filtered = []
+            for gm in gmetadatas:
+                title_jpn = html.unescape(gm.get('title_jpn', ''))
+                if is_subsequence(title, title_jpn):
+                    filtered.append(gm)
+            if filtered:
+                gmetadatas = filtered
+        
+        # Convert to Metadata objects
+        for relevance, gm in enumerate(gmetadatas):
             if abort.is_set():
                 break
+            
+            try:
+                mi = to_metadata(gm, log)
+                mi.source_relevance = relevance
+                
+                # Apply translation if enabled
+                if self.prefs.get('translate_tags'):
+                    if not self.translation._loaded:
+                        self.translation.load(
+                            self.browser,
+                            self.proxy_config.get_proxy_dict()
+                        )
+                    self.translation.translate(mi)
+                
+                # Cache cover URL
+                if mi.has_ehentai_cover:
+                    self.cache_identifier_to_cover_url(
+                        mi.identifiers['ehentai'],
+                        mi.has_ehentai_cover
+                    )
+                
+                result_queue.put(mi)
+            except Exception as e:
+                log.exception(f'Failed to process metadata: {e}')
 
-    # }}}
-
-    def get_book_url(self, identifiers):  # {{{
-
-        db = identifiers.get('ehentai', None)
-        d = {'0': False, '1': True}
-        if db is not None:
-            gid, token, s = re.split('_', db)
-            ExHentai_Status = d[str(s)]
-            if ExHentai_Status:
-                url = self.ExHentai_url % (gid, token)
-            else:
-                url = self.EHentai_url % (gid, token)
-            return ('ehentai', db, url)
-
-    # }}}
-
-    def download_cover(self, log, result_queue, abort, title=None, authors=None, identifiers={}, timeout=30,
-                       get_best_cover=False):  # {{{
-
+    def download_cover(self, log, result_queue, abort, title=None, authors=None,
+                       identifiers=None, timeout=30, get_best_cover=False):
+        """Download cover image for identified book."""
+        identifiers = identifiers or {}
         cached_url = self.get_cached_cover_url(identifiers)
-        if cached_url is None:
+        if cached_url is None or abort.is_set():
             return
-        if abort.is_set():
-            return
-        br = self.browser
-        log('Downloading cover from:', cached_url)
+        
         try:
-            cdata = br.open_novisit(cached_url, timeout=timeout).read()
+            resp = self.net.request(
+                cached_url,
+                proxy=self.proxy_config.get_proxy_dict(),
+                timeout=timeout,
+                abort=abort
+            )
+            cdata = resp.read()
             if cdata:
                 result_queue.put((self, cdata))
-        except:
-            log.exception('Failed to download cover from:', cached_url)
-
-    # }}}
-
-    def get_cached_cover_url(self, identifiers):  # {{{
-
-        url = None
-        db = identifiers.get('ehentai', None)
-        if db is None:
-            pass
-        if db is not None:
-            url = self.cached_identifier_to_cover_url(db)
-        return url
-
-    # }}}
-
-    def get_html_content(self,br,query,is_exhentai,log, result_queue, abort, title, authors, identifiers, timeout):
-        try:
-            # 获取查询结果页面的数据
-            _raw = br.open_novisit(query, timeout=timeout)
-            raw = _raw.read()
-            if 'Your IP address has been temporarily banned' in str(raw):
-                log.error('IP address has been temporarily banned')
-                raise Exception("IP address has been temporarily banned")
-            # print("页面类型：",type(raw))
-            raw = raw.decode('unicode_escape')
-            return raw
         except Exception as e:
-            log.exception('Failed to make identify query: %r' % query)
-            return as_unicode(e)
-        if not raw and identifiers and title and authors and not abort.is_set():
-            return self.identify(log, result_queue, abort, title=title, authors=authors, timeout=timeout)
-        if is_exhentai is True:
-            try:
-                'https://exhentai.org/' in raw
-            except Exception as e:
-                log.error('The cookies for ExHentai is invalid.')
-                log.error('Exhentai cookies:')
-                log.error(self.ExHentai_Cookies)
-                return
+            log.exception(f'Failed to download cover from {cached_url}: {e}')
 
-    def identify(self, log, result_queue, abort, title=None, authors=None, identifiers={}, timeout=30):  # {{{
+    def get_cached_cover_url(self, identifiers: Dict) -> Optional[str]:
+        """Retrieve cached cover URL from identifier."""
+        db = identifiers.get('ehentai')
+        if db:
+            return self.cached_identifier_to_cover_url(db)
+        return None
 
-        is_exhentai = self.ExHentai_Status
-        accurate_label = self.Accurate_Label
-        use_proxy = self.Proxy_Status
-        proxy = self.Proxy
-        log.info(proxy)
-        global accurate_url
-
-        if accurate_label:
-            # 创建应用程序和对象
-            app = QtWidgets.QApplication(sys.argv)
-            w = QtWidgets.QWidget()
-            ui = getUrlUI()
-            ui.setUI(w)
-            app.exec()
-            #print("获取的数据：", accurate_url)
-
-        #获取将查询信息进行拼接
-        query = self.create_query(log, title=title, authors=authors, identifiers=identifiers, is_exhentai=is_exhentai)
-        if not query:
-            log.error('Insufficient metadata to construct query')
-            return
-
-        br = self.browser
-        if use_proxy is True:
-            br.set_proxies(proxies=proxy,proxy_bypass=lambda hostname: False)
-
-        br.addheaders = [('User-agent',
-                          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36')]
-
-        if is_exhentai is True:
-            for cookie in self.ExHentai_Cookies:
-                br.set_cookie(name=cookie['name'], value=cookie['value'], domain=cookie['domain'], path=cookie['path'])
-
-
-        if accurate_label:
-            raw = accurate_url
+    def get_book_url(self, identifiers: Dict):
+        """Reconstruct gallery URL from identifier."""
+        db = identifiers.get('ehentai')
+        if not db:
+            return None
+        parts = db.split('_')
+        if len(parts) < 3:
+            return None
+        gid, token, exhentai_flag = parts[0], parts[1], parts[2]
+        if exhentai_flag == '1':
+            url = self.EXHENTAI_URL % (gid, token)
         else:
-            raw = self.get_html_content(br,query,is_exhentai,log, result_queue, abort, title, authors, identifiers, 30)
-
-        #得到查询页面结果信息
-        gidlist = []
-        for i in range(0,1):
-            gidlist = self.get_gallery_info(log, raw)
-            if gidlist is not None:
-                break
-            else:
-                query = self.create_query_detail(log, title=title, authors=authors, identifiers=identifiers,
-                                          is_exhentai=is_exhentai)
-                if not query:
-                    log.error('Insufficient metadata to construct query')
-                    return
-                raw = self.get_html_content(br, query, is_exhentai, log, result_queue, abort, title, authors,
-                                            identifiers, 30)
-
-        if not gidlist:
-            log.error('No result found.\n', 'query: %s' % query)
-            return
-        self.get_all_details(gidlist=gidlist, log=log, abort=abort, result_queue=result_queue, timeout=timeout, title = title)
-        # }}}
+            url = self.EHENTAI_URL % (gid, token)
+        return ('ehentai', db, url)
 
 
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
 
+if __name__ == '__main__':
+    from calibre.ebooks.metadata.sources.test import (
+        test_identify_plugin, title_test, authors_test
+    )
 
-if __name__ == '__main__': # tests {{{
-    # To run these test use: calibre-customize -b ehentai_metadata && calibre-debug -e ehentai_metadata/__init__.py
-    from calibre.ebooks.metadata.sources.test import (test_identify_plugin,
-        title_test, authors_test)
-
-    test_identify_plugin(Ehentai.name,
-        [
-            (
-                {'title': 'xxx大手大脚哈吧就是看到那', 'authors': ['しらたま肉球']},
-                [title_test('xxx大手大脚哈吧就是看到那', exact=False)]
-            ),
-            (
-                {'title': '拘束する部活動 (僕は友達が少ない)', 'authors': ['すもも堂 (すももEX) ', '有条色狼']},
-                [title_test('拘束する部活動', exact=False)]
-            ),
-            (
-                {'title': '桜の蜜', 'authors': ['劇毒少女 (ke-ta)']},
-                [title_test('桜の蜜', exact=False)]
-            )
+    test_identify_plugin(Ehentai.name, [
+        (
+            {'title': '拘束する部活動 (僕は友達が少ない)', 'authors': ['すもも堂']},
+            [title_test('拘束する部活動', exact=False)]
+        ),
+        (
+            {'title': '桜の蜜', 'authors': ['劇毒少女 (ke-ta)']},
+            [title_test('桜の蜜', exact=False)]
+        ),
     ])
-# }}}
