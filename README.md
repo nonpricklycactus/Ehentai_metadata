@@ -43,7 +43,262 @@ This plug-in is adapted from the idea of ​​[doujinshi_metadata_plugins](http
 
 The Database from EhTagTranslation [Database](https://github.com/EhTagTranslation/Database) and data transformation
 
-**Version History:**
+## 🎯 Latest Update (2026-03-23)
+
+### Key Improvements
+
+#### 1. HTTP 400 Error Fix
+**Problem**: Custom metadata server returns "HTTP Error 400: BAD REQUEST".
+
+**Root Cause**:
+- Flask server requires `Content-Type: application/json` header, but plugin wasn't sending it correctly
+- Proxy settings interfering with local server connections
+- Insufficient request parameter validation
+
+**Solution**:
+- Ensure `Content-Type: application/json` header is correctly sent in `protocol.py`
+- Clear browser proxy settings when proxy is not enabled
+- Add client-side parameter validation and URL format checking
+- Use more reliable `urllib.request` method for sending requests
+
+#### 2. Configuration Interface Optimization
+**Problem**: Custom server configuration options were scattered in the settings interface.
+
+**Solution**:
+- Reorder options in `__init__.py`
+- Move custom metadata server options (`use_custom_metadata`, `custom_metadata_url`, `custom_metadata_token`) after `accurate_label`
+- Create logical grouping: Accurate Mode → Custom Server Extension
+
+#### 3. Enhanced Debugging Capabilities
+**Problem**: Difficult to diagnose issues when errors occur.
+
+**Solution**:
+- **Plugin-side enhanced logging**: Add detailed request/response logging in `protocol.py`
+- **Server-side enhanced logging**: Add detailed validation logging in `custom_metadata_server_example.py`
+- **Enriched error information**: HTTP errors now include status code, response body, etc.
+
+## ⚙️ Complete Configuration Guide
+
+### Search Mode Options
+
+#### 1. Use ExHentai
+- **Function**: Search ExHentai instead of E-Hentai
+- **Requirement**: Valid ExHentai cookies
+- **Default**: Off
+
+#### 2. Translate tags to Chinese
+- **Function**: Automatically translate tags to Chinese
+- **Mechanism**: Fetch latest translations from GitHub EhTagTranslation repository
+- **Cache**: 24-hour automatic update
+- **Default**: Off
+
+#### 3. Accurate label mode
+- **Function**: Exact mode, prompts for precise gallery URL
+- **Use case**: When you know the exact gallery URL
+- **Workflow**: When enabled, shows URL input dialog during metadata download
+- **Default**: Off
+
+### Custom Metadata Server Options
+
+#### 4. Enable custom metadata server
+- **Function**: Enable third-party metadata server
+- **Purpose**: Extend metadata sources, integrate other data sources
+- **Requirement**: Server URL must be configured
+- **Default**: Off
+
+#### 5. Custom metadata server URL
+- **Format**: `http://host:port/path` or `https://host:port/path`
+- **Example**: `http://localhost:5000/metadata`
+- **Protocol**: Must support Custom Metadata Server Protocol v1.0
+
+#### 6. Custom metadata auth token
+- **Format**: `Bearer <token>` or `Basic <base64>`
+- **Example**: `Bearer my-secret-token-123`
+- **Optional**: Leave empty if server doesn't require authentication
+
+### Network Options
+
+#### 7. Use proxy
+- **Function**: Enable proxy server
+- **Use case**: When proxy is needed to access E-Hentai/ExHentai
+- **Default**: Off
+
+#### 8. Proxy URL
+- **Format**: `[user:pass@]host:port` or `http://host:port`
+- **Example**: `127.0.0.1:1080` or `user:pass@proxy.example.com:8080`
+- **Requirement**: Must be configured when "Use proxy" is enabled
+
+### ExHentai Cookie Options
+
+#### 9-11. ExHentai cookies (ipb_member_id, ipb_pass_hash, igneous)
+- **How to obtain**:
+  1. Log in to ExHentai website
+  2. Open browser developer tools (F12)
+  3. Go to Application/Storage → Cookies
+  4. Find and copy the three cookie values
+- **Requirement**: Must be configured when "Use ExHentai" is enabled
+- **Security note**: These are sensitive information, keep them secure
+
+## 🔧 Advanced Features
+
+### Custom Metadata Server
+
+#### Server Protocol
+Plugin supports Custom Metadata Server Protocol v1.0:
+
+**Request Format**:
+```json
+{
+  "schema_version": "1.0",
+  "search_type": "identify",
+  "title": "Gallery Title",
+  "authors": ["Artist Name"],
+  "identifiers": {"ehentai": "12345_abc_0"}
+}
+```
+
+**Response Format**:
+```json
+{
+  "schema_version": "1.0",
+  "source": "My Metadata Server",
+  "results": [{
+    "title": "Gallery Title",
+    "authors": ["Artist Name"],
+    "publisher": "Circle Name",
+    "tags": ["female:glasses", "category:doujinshi"],
+    "rating": 4.5,
+    "cover_url": "https://example.com/cover.jpg",
+    "identifiers": {"ehentai": "12345_abc_0"}
+  }],
+  "error": null
+}
+```
+
+#### Example Server
+Complete example server implementation included:
+```bash
+cd custom_metadata_server
+python custom_metadata_server_example.py
+```
+
+### Tag Translation System
+
+#### How it works
+1. **Automatic fetching**: Get latest translations from GitHub EhTagTranslation/Database
+2. **Smart caching**: 24-hour cache, reduces network requests
+3. **Real-time updates**: Check for updates each time plugin starts
+
+#### Supported languages
+- Chinese (Simplified)
+- English (original tags)
+- Japanese (some tags)
+
+### Accurate Label Mode
+
+#### Use cases
+- Know the exact E-Hentai/ExHentai gallery URL
+- When search returns no results or inaccurate results
+- Need metadata for specific gallery
+
+#### Steps
+1. Enable "Accurate label mode"
+2. When downloading metadata, URL input dialog appears
+3. Paste complete gallery URL, e.g.: `https://e-hentai.org/g/1234567/abcdef123456/`
+4. Plugin directly fetches metadata from that gallery
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+#### 1. "No results found"
+**Possible causes**:
+- Network connection issues
+- Title/author mismatch
+- E-Hentai access restrictions
+
+**Solutions**:
+- Check network connection
+- Try different search keywords
+- Use "Accurate label mode" to specify URL directly
+
+#### 2. "HTTP Error" or connection failure
+**Possible causes**:
+- Proxy configuration error
+- Firewall blocking
+- Server unavailable
+
+**Solutions**:
+- Check proxy settings
+- Temporarily disable firewall for testing
+- Confirm E-Hentai is accessible
+
+#### 3. ExHentai access failure
+**Possible causes**:
+- Cookies expired or invalid
+- Cookie format error
+- ExHentai server issues
+
+**Solutions**:
+- Get fresh valid cookies
+- Check all three cookie values are complete
+- Confirm ExHentai account status is normal
+
+#### 4. Custom server connection failure
+**Possible causes**:
+- Server not running
+- URL format error
+- Authentication failure
+- Protocol incompatibility
+
+**Solutions**:
+1. Confirm server is running
+2. Check URL format
+3. Verify authentication token
+4. Check server logs
+
+### Debugging Steps
+
+#### Check logs
+1. Open Calibre → Preferences → Miscellaneous → Open Calibre configuration directory
+2. Go to `logs` folder
+3. Check latest log file
+4. Search for "E-hentai Galleries" or "CustomMetadataClient"
+
+#### Test connection
+```bash
+# Test E-Hentai access
+curl https://e-hentai.org
+
+# Test custom server
+curl -X POST http://localhost:5000/metadata \
+  -H "Content-Type: application/json" \
+  -d '{"schema_version":"1.0","search_type":"identify","title":"test","authors":[],"identifiers":{}}'
+```
+
+#### Verify configuration
+1. Confirm all required options are configured
+2. Check dependencies between options
+3. Test each feature separately
+
+## 🔒 Security Notes
+
+### Sensitive Information
+1. **ExHentai Cookies**: Equivalent to passwords, do not share
+2. **Proxy credentials**: Contain username and password
+3. **Authentication tokens**: Access tokens for custom servers
+
+### Security Recommendations
+1. **Regular updates**: Periodically change sensitive information
+2. **Local storage**: Configuration stored locally with encryption
+3. **Minimum permissions**: Use accounts with minimum necessary permissions
+
+### Privacy Protection
+1. **Search history**: Not recorded in plugin
+2. **Personal information**: No collection of user personal information
+3. **Data transmission**: Use HTTPS for sensitive data transmission
+
+## 📚 Version History
 
 **Version 3.0.0** - 2026-03-22
 
