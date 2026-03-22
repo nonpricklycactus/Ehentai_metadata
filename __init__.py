@@ -19,12 +19,55 @@ from calibre.ebooks.metadata.sources.base import Source, Option
 from calibre.ebooks.metadata.book.base import Metadata
 from calibre import as_unicode
 
-# Local module imports
-from .net import NetworkClient
-from .proxy import ProxyConfig
-from .translation import TranslationService
-from .protocol import CustomMetadataClient
-from .ui import AccurateLabelDialog
+# Local module imports - dynamic import to handle both contexts
+import sys
+import os
+
+def import_local_module(module_name, class_name):
+    """Import a class from a local module, handling both plugin and dev contexts."""
+    plugin_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Try multiple import strategies
+    for strategy in ['absolute', 'relative', 'sys_path']:
+        try:
+            if strategy == 'absolute':
+                # Try absolute import (works in plugin context)
+                module = __import__(module_name, fromlist=[class_name])
+            elif strategy == 'relative':
+                # Try relative import (works when __name__ is set)
+                if '__name__' in globals() and globals()['__name__']:
+                    parent = globals()['__name__'].rsplit('.', 1)[0] if '.' in globals()['__name__'] else ''
+                    fullname = f'{parent}.{module_name}' if parent else module_name
+                    module = __import__(fullname, fromlist=[class_name])
+                else:
+                    continue
+            elif strategy == 'sys_path':
+                # Try adding plugin dir to sys.path and importing
+                if plugin_dir not in sys.path:
+                    sys.path.insert(0, plugin_dir)
+                module = __import__(module_name, fromlist=[class_name])
+            
+            return getattr(module, class_name)
+        except (ImportError, ValueError, KeyError):
+            continue
+    
+    # If all strategies fail, try a direct file import as last resort
+    try:
+        import importlib.util
+        module_path = os.path.join(plugin_dir, f'{module_name}.py')
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return getattr(module, class_name)
+    except Exception as e:
+        raise ImportError(f'Failed to import {class_name} from {module_name}: {e}')
+
+# Import all local modules
+NetworkClient = import_local_module('net', 'NetworkClient')
+ProxyConfig = import_local_module('proxy', 'ProxyConfig')
+TranslationService = import_local_module('translation', 'TranslationService')
+CustomMetadataClient = import_local_module('protocol', 'CustomMetadataClient')
+AccurateLabelDialog = import_local_module('ui', 'AccurateLabelDialog')
 
 # Standard library
 import re
@@ -314,14 +357,14 @@ class Ehentai(Source):
         proxy_url = self.prefs.get('proxy_url')
         self.proxy_config = ProxyConfig(proxy_url)
         
-        # Translation service
+        # Translation service (log injected later)
         cache_dir = os.path.join(os.path.dirname(__file__), '.cache')
-        self.translation = TranslationService(cache_dir, self.log)
+        self.translation = TranslationService(cache_dir, log=None)
         
-        # Custom metadata client
+        # Custom metadata client (log injected later)
         custom_url = self.prefs.get('custom_metadata_url')
         custom_token = self.prefs.get('custom_metadata_token')
-        self.custom_client = CustomMetadataClient(custom_url, custom_token, self.log)
+        self.custom_client = CustomMetadataClient(custom_url, custom_token, log=None)
         
         # ExHentai cookies
         self.exhentai_cookies = self._build_exhentai_cookies()
@@ -349,6 +392,10 @@ class Ehentai(Source):
     def identify(self, log, result_queue, abort, title=None, authors=None, 
                  identifiers=None, timeout=30):
         """Main entry point for metadata identification."""
+        # Inject log into services
+        self.translation.log = log
+        self.custom_client.log = log
+        
         identifiers = identifiers or {}
         use_exhentai = bool(self.exhentai_cookies)
         

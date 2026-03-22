@@ -44,13 +44,13 @@ class CustomMetadataClient:
     }
     """
     
-    def __init__(self, endpoint_url: str, auth_token: Optional[str], log):
+    def __init__(self, endpoint_url: str, auth_token: Optional[str], log=None):
         """Initialize custom metadata client.
         
         Args:
             endpoint_url: Server URL (e.g. http://localhost:8080/metadata)
             auth_token: Bearer token or Basic auth string
-            log: Calibre log object
+            log: Calibre log object (optional, injected later if None)
         """
         self.endpoint = endpoint_url
         self.auth_token = auth_token
@@ -128,27 +128,31 @@ class CustomMetadataClient:
             
             # Validate schema
             if response.get('schema_version') != PROTOCOL_VERSION:
-                self.log.error(
-                    f'CustomMetadataClient: unexpected schema version '
-                    f'{response.get("schema_version")!r}'
-                )
+                if self.log:
+                    self.log.error(
+                        f'CustomMetadataClient: unexpected schema version '
+                        f'{response.get("schema_version")!r}'
+                    )
                 return []
             
             if 'error' in response and response['error']:
-                self.log.error(
-                    f'CustomMetadataClient: server error: {response["error"]}'
-                )
+                if self.log:
+                    self.log.error(
+                        f'CustomMetadataClient: server error: {response["error"]}'
+                    )
                 return []
             
             results = response.get('results', [])
-            self.log.info(
-                f'CustomMetadataClient: got {len(results)} results from '
-                f'{response.get("source", self.endpoint)}'
-            )
+            if self.log:
+                self.log.info(
+                    f'CustomMetadataClient: got {len(results)} results from '
+                    f'{response.get("source", self.endpoint)}'
+                )
             return results
         
         except Exception as exc:  # noqa: BLE001
-            self.log.error(f'CustomMetadataClient: request failed: {exc}')
+            if self.log:
+                self.log.error(f'CustomMetadataClient: request failed: {exc}')
             return []
 
     def __bool__(self) -> bool:

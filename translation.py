@@ -90,12 +90,12 @@ class TranslationService:
     so a crashed mid-write never corrupts the existing cache.
     """
 
-    def __init__(self, cache_dir: str, log):
+    def __init__(self, cache_dir: str, log=None):
         """Initialize the translation service.
 
         Args:
             cache_dir: Directory for cache files (created if absent).
-            log: Calibre log object (supports .info / .error / .exception).
+            log: Calibre log object (optional, injected later if None).
         """
         self.cache_dir = cache_dir
         self.log = log
@@ -247,7 +247,8 @@ class TranslationService:
             with open(self.cache_file, 'r', encoding='utf-8') as fh:
                 return json.load(fh)
         except (IOError, json.JSONDecodeError) as exc:
-            self.log.error(f'TranslationService: failed to read cache: {exc}')
+            if self.log:
+                self.log.error(f'TranslationService: failed to read cache: {exc}')
             return {}
 
     def _save_cache(self, data: Dict, etag: Optional[str]) -> None:
@@ -272,7 +273,8 @@ class TranslationService:
                 os.remove(self.cache_file)
             os.rename(tmp, self.cache_file)
         except IOError as exc:
-            self.log.error(f'TranslationService: failed to save cache: {exc}')
+            if self.log:
+                self.log.error(f'TranslationService: failed to save cache: {exc}')
             if os.path.exists(tmp):
                 try:
                     os.remove(tmp)
@@ -335,13 +337,15 @@ class TranslationService:
             self._db = _parse_db(decompressed)
             self._loaded = bool(self._db)
             self._save_cache(self._db, new_etag)
-            self.log.info(
-                f'TranslationService: loaded {sum(len(v) for v in self._db.values())} tags'
-            )
+            if self.log:
+                self.log.info(
+                    f'TranslationService: loaded {sum(len(v) for v in self._db.values())} tags'
+                )
             return self._loaded
 
         except Exception as exc:  # noqa: BLE001
-            self.log.error(f'TranslationService: fetch failed: {exc}')
+            if self.log:
+                self.log.error(f'TranslationService: fetch failed: {exc}')
             # Fall back to stale cache.
             cached = self._load_cache()
             self._db = cached.get('data', {})
