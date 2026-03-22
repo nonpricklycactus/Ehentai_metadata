@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 """Translation service using GitHub EhTagTranslation database.
 
-Fetches db.text.json.gz from EhTagTranslation/Database releases, caches it
-locally for 24 hours using ETag-based conditional requests, and provides
-namespace-keyed tag lookup (e.g. 'female:glasses' -> '眼镜').
+Fetches db.text.json.gz from EhTagTranslation/DatabaseReleases mirror,
+caches it locally for 24 hours using ETag-based conditional requests,
+and provides namespace-keyed tag lookup (e.g. 'female:glasses' -> '眼镜').
 
 Calibre's browser stack (not requests) is used so proxy/SSL settings are
 inherited automatically.
@@ -21,10 +21,12 @@ from typing import Dict, List, Optional
 __license__ = 'GPL v3'
 __copyright__ = '2026, nonpricklycactus'
 
-# Direct GitHub releases asset — resolves to latest tag automatically.
+# Direct raw URL to the DatabaseReleases mirror.
+# This file auto-syncs from the main Database repo via GitHub Actions
+# and is always up-to-date with the latest release.
 _RELEASE_URL = (
-    'https://github.com/EhTagTranslation/Database/releases/download/latest/'
-    'db.text.json.gz'
+    'https://raw.githubusercontent.com/EhTagTranslation/DatabaseReleases/'
+    'master/db.text.json.gz'
 )
 _CACHE_TTL_HOURS = 24
 

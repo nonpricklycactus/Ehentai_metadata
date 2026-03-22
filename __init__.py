@@ -348,6 +348,35 @@ class Ehentai(Source):
         Source.__init__(self, *args, **kwargs)
         self._init_services()
 
+    def _get_cache_directory(self) -> str:
+        """Get cache directory path, handling both development and plugin runtime.
+        
+        When plugin runs from ZIP file, we need to use a writable directory.
+        """
+        import os
+        import tempfile
+        
+        # Get the plugin path from Calibre's Plugin base class
+        # self.plugin_path is set by Calibre when plugin is loaded
+        if hasattr(self, 'plugin_path') and self.plugin_path:
+            # Plugin is running from ZIP file - use Calibre's config directory
+            try:
+                from calibre.utils.config import config_dir
+                plugin_cache_dir = os.path.join(config_dir, 'plugins', 'Ehentai_metadata', 'cache')
+                os.makedirs(plugin_cache_dir, exist_ok=True)
+                return plugin_cache_dir
+            except ImportError:
+                # Fallback to temp directory for testing
+                temp_dir = os.path.join(tempfile.gettempdir(), 'calibre_ehentai_cache')
+                os.makedirs(temp_dir, exist_ok=True)
+                return temp_dir
+        else:
+            # Development mode or plugin_path not set - use .cache in plugin directory
+            file_path = os.path.abspath(__file__)
+            cache_dir = os.path.join(os.path.dirname(file_path), '.cache')
+            os.makedirs(cache_dir, exist_ok=True)
+            return cache_dir
+
     def _init_services(self):
         """Initialize all service modules."""
         # Network client with rate limiting
@@ -358,7 +387,8 @@ class Ehentai(Source):
         self.proxy_config = ProxyConfig(proxy_url)
         
         # Translation service (log injected later)
-        cache_dir = os.path.join(os.path.dirname(__file__), '.cache')
+        # Get cache directory - handle both development and plugin runtime
+        cache_dir = self._get_cache_directory()
         self.translation = TranslationService(cache_dir, log=None)
         
         # Custom metadata client (log injected later)
