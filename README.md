@@ -53,10 +53,11 @@ This plugin downloads metadata from [E-Hentai Galleries](https://e-hentai.org/).
 - **Default**: Off
 
 #### 3. Accurate label mode
-- **Function**: Exact mode, prompts for precise gallery URL
+- **Function**: Get metadata from specific gallery URL
 - **Use case**: When you know the exact gallery URL
-- **Workflow**: When enabled, shows URL input dialog during metadata download
+- **Workflow**: Paste URL into title field, enable this option, then download metadata
 - **Default**: Off
+- **Note**: No dialog popup - URL must be pasted into title field
 
 ### Custom Metadata Server Options
 
@@ -161,11 +162,15 @@ python custom_metadata_server_example.py
 - When search returns no results or inaccurate results
 - Need metadata for specific gallery
 
-#### Steps
-1. Enable "Accurate label mode"
-2. When downloading metadata, URL input dialog appears
-3. Paste complete gallery URL, e.g.: `https://e-hentai.org/g/1234567/abcdef123456/`
-4. Plugin directly fetches metadata from that gallery
+#### Steps (New Method - v3.0.0+)
+1. Paste the gallery URL into the **Title** field (e.g., `https://e-hentai.org/g/1234567/abcdef123456/`)
+2. Enable "Accurate label mode" in plugin settings
+3. Download metadata - plugin will fetch from the specified URL
+
+#### Important Change
+- **v2.x**: Dialog popup for URL input
+- **v3.0.0+**: No dialog - URL must be pasted into title field
+- **Reason**: Calibre worker processes cannot display GUI dialogs
 
 ## 🐛 Troubleshooting
 
@@ -268,7 +273,7 @@ curl -X POST http://localhost:5000/metadata \
 - Translation: automatic fetching from GitHub EhTagTranslation (no manual database setup)
 - Custom metadata server: JSON protocol v1.0 for third-party integrations
 - Proxy improvements: parse username:password@host:port with auth headers
-- UI improvements: Accurate Label dialog with URL validation and layouts
+- Accurate label mode: Changed from dialog popup to URL-in-title-field method (fixes worker process crashes)
 - Qt compatibility: qt.core imports for Calibre 9.x
 - Minimum Calibre version: 9.0.0
 - Breaking changes: removed local SQLite database requirement

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""UI dialogs for E-hentai metadata plugin."""
+"""UI components for E-hentai metadata plugin.
+Note: Accurate label dialog is no longer used in v3.0.0+ due to worker process limitations.
+URLs should be pasted into the title field instead."""
 
 from __future__ import (unicode_literals, division, absolute_import, print_function)
 
@@ -19,7 +21,9 @@ __copyright__ = '2026, nonpricklycactus'
 
 
 class AccurateLabelDialog(QDialog):
-    """Dialog for entering E-hentai gallery URL for accurate tag fetching."""
+    """Dialog for entering E-hentai gallery URL for accurate tag fetching.
+    DEPRECATED in v3.0.0+: URLs should be pasted into title field instead.
+    This class is kept for compatibility but not used in worker processes."""
     
     URL_PATTERN = re.compile(
         r'https?://(?:e-hentai\.org|exhentai\.org)/g/\d+/[a-f0-9]+/?'
@@ -66,6 +70,11 @@ class AccurateLabelDialog(QDialog):
         return self._url
 
 
-def _(text):
-    """Placeholder for translation function."""
-    return text
+# Use Calibre's translation function if available, otherwise use placeholder
+try:
+    # Try to get translation function from Calibre
+    from calibre import _
+except ImportError:
+    # Fallback for testing/development
+    def _(text):
+        return text

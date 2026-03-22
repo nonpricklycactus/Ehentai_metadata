@@ -78,6 +78,13 @@ import sys
 from typing import Dict, List, Set, Union, Optional
 from urllib.parse import urlencode
 
+# Image processing - for WebP to JPEG conversion
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+
 # Language mappings for tag parsing
 LANGUAGE_DICT = {
     'Chinese': 'chinese',
@@ -280,7 +287,21 @@ def to_metadata(gmetadata: Dict, log) -> Metadata:
     mi.tags = list(tags_set)
     mi.languages = list(languages)
     mi.rating = float(rating)
-    mi.has_ehentai_cover = thumb if thumb else None
+    
+    # Process cover URL
+    if thumb:
+        # E-hentai API returns thumbnail URLs
+        # Common patterns:
+        # - https://ehgt.org/t/12/34/1234567890abcd.jpg
+        # - https://exhentai.org/t/12/34/1234567890abcd.jpg
+        # - Other CDN domains
+        
+        # For now, use the thumbnail URL as-is
+        # Thumbnail URLs are usually accessible with proper headers
+        mi.has_ehentai_cover = thumb
+        log.info(f'Cover URL from API: {thumb}')
+    else:
+        mi.has_ehentai_cover = None
 
     return mi
 
@@ -358,7 +379,7 @@ class Ehentai(Source):
                _('Fetch translations from EhTagTranslation GitHub repository')),
         Option('accurate_label', 'bool', False,
                _('Accurate label mode'),
-               _('Prompt for exact gallery URL instead of searching')),
+               _('Get metadata from specific URL (paste URL in title field)')),
         Option('use_custom_metadata', 'bool', False,
                _('Enable custom metadata server'),
                _('Use third-party metadata server when enabled')),
@@ -439,6 +460,75 @@ class Ehentai(Source):
         
         # ExHentai cookies
         self.exhentai_cookies = self._build_exhentai_cookies()
+
+    def _convert_cover_to_jpeg(self, image_data: bytes, log) -> bytes:
+        """Convert cover image to JPEG format for Calibre compatibility.
+        
+        Calibre requires JPEG format for covers. This function:
+        1. Detects if image is WebP or other non-JPEG format
+        2. Converts to JPEG using PIL if available
+        3. Preserves image quality while ensuring compatibility
+        
+        Args:
+            image_data: Raw image bytes
+            log: Calibre log object for debugging
+            
+        Returns:
+            JPEG image bytes (converted if needed, original if already JPEG or conversion fails)
+        """
+        if not image_data:
+            return image_data
+            
+        # Check if already JPEG by magic bytes
+        if len(image_data) >= 2 and image_data[:2] == b'\xff\xd8':
+            log.info('Cover image is already JPEG format')
+            return image_data
+            
+        if not PIL_AVAILABLE:
+            log.warning('PIL/Pillow not available, cannot convert non-JPEG cover images')
+            return image_data
+            
+        try:
+            from io import BytesIO
+            
+            # Open image with PIL
+            img = Image.open(BytesIO(image_data))
+            original_format = img.format
+            original_size = img.size
+            
+            log.info(f'Cover image format: {original_format}, size: {original_size}')
+            
+            # Check if conversion is needed
+            if original_format == 'JPEG':
+                log.info('Cover is already JPEG, no conversion needed')
+                return image_data
+                
+            log.info(f'Converting cover from {original_format} to JPEG...')
+            
+            # Handle different image modes
+            if img.mode in ('RGBA', 'LA', 'P'):
+                # Convert transparent images to RGB with white background
+                if img.mode == 'RGBA':
+                    background = Image.new('RGB', img.size, (255, 255, 255))
+                    background.paste(img, mask=img.split()[3] if img.mode == 'RGBA' else None)
+                    img = background
+                else:
+                    img = img.convert('RGB')
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            # Save as JPEG
+            output = BytesIO()
+            img.save(output, format='JPEG', quality=85, optimize=True)
+            jpeg_data = output.getvalue()
+            
+            log.info(f'Cover conversion complete: {len(image_data)} → {len(jpeg_data)} bytes')
+            return jpeg_data
+            
+        except Exception as e:
+            log.warning(f'Failed to convert cover image: {e}')
+            # Return original data as fallback
+            return image_data
         
     def _build_exhentai_cookies(self) -> List[Dict]:
         """Build ExHentai cookie list from preferences."""
@@ -470,17 +560,23 @@ class Ehentai(Source):
         identifiers = identifiers or {}
         use_exhentai = bool(self.exhentai_cookies)
         
-        # Accurate label mode - prompt for URL
+        # Accurate label mode - get URL from title field
         gallery_url = None
         if self.prefs.get('accurate_label'):
-            try:
-                from calibre.gui2 import must_use_qt
-                must_use_qt()
-                dialog = AccurateLabelDialog()
-                if dialog.exec_():
-                    gallery_url = dialog.get_url()
-            except Exception as e:
-                log.error(f'Accurate label dialog failed: {e}')
+            # In accurate label mode, the title field should contain the E-hentai URL
+            import re
+            url_pattern = re.compile(r'https?://(?:e-hentai\.org|exhentai\.org)/g/\d+/[a-f0-9]+/?')
+            
+            if title and url_pattern.match(title.strip()):
+                gallery_url = title.strip()
+                log.info(f'Accurate label mode: Using URL from title field: {gallery_url}')
+            else:
+                # Title is not a valid E-hentai URL
+                log.error('Accurate label mode is enabled but title is not a valid E-hentai URL.')
+                log.error('Please paste the E-hentai gallery URL into the title field.')
+                log.error('Example: https://e-hentai.org/g/1234567/abcdef123456/')
+                log.error('Or disable accurate label mode to use normal search.')
+                return  # Exit early since we can't proceed without a valid URL
         
         # Priority 1: Custom Metadata Server (if enabled and configured)
         custom_results = []
@@ -619,10 +715,13 @@ class Ehentai(Source):
                 
                 # Cache cover URL
                 if mi.has_ehentai_cover:
-                    self.cache_identifier_to_cover_url(
-                        mi.identifiers['ehentai'],
-                        mi.has_ehentai_cover
-                    )
+                    identifier = mi.identifiers.get('ehentai')
+                    cover_url = mi.has_ehentai_cover
+                    if identifier and cover_url:
+                        log.info(f'Caching cover URL: {cover_url} for identifier: {identifier}')
+                        self.cache_identifier_to_cover_url(identifier, cover_url)
+                    else:
+                        log.warning(f'Cannot cache cover: identifier={identifier}, cover_url={cover_url}')
                 
                 result_queue.put(mi)
             except Exception as e:
@@ -633,21 +732,83 @@ class Ehentai(Source):
         """Download cover image for identified book."""
         identifiers = identifiers or {}
         cached_url = self.get_cached_cover_url(identifiers)
-        if cached_url is None or abort.is_set():
+        
+        log.info(f'Cover download: identifiers={identifiers}')
+        log.info(f'Cover download: cached_url={cached_url}')
+        
+        if cached_url is None:
+            log.warning('Cover download: No cached URL found')
+            return
+        
+        if abort.is_set():
+            log.warning('Cover download: Abort signal received')
             return
         
         try:
+            log.info(f'Cover download: Attempting to download from {cached_url}')
+            
+            # Check if we need ExHentai cookies
+            cookies = []
+            # ExHentai cookies are needed for:
+            # 1. exhentai.org URLs (galleries)
+            # 2. ehgt.org URLs (image CDN used by ExHentai)
+            # 3. Other ExHentai CDN domains
+            if self.exhentai_cookies:
+                # Check if this URL likely requires ExHentai cookies
+                requires_cookies = (
+                    'exhentai.org' in cached_url or 
+                    'ehgt.org' in cached_url or
+                    # Check if this is from an ExHentai gallery (identifier ends with _1)
+                    (identifiers.get('ehentai', '').endswith('_1'))
+                )
+                
+                if requires_cookies:
+                    cookies = self.exhentai_cookies
+                    log.info(f'Cover download: Using ExHentai cookies for {cached_url}')
+                    log.info(f'Cover download: Identifier suggests ExHentai: {identifiers.get("ehentai", "")}')
+            
+            # E-hentai image servers may require specific headers
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': 'https://e-hentai.org/' if 'e-hentai.org' in cached_url else 'https://exhentai.org/'
+            }
+            
             resp = self.net.request(
                 cached_url,
                 proxy=self.proxy_config.get_proxy_dict(),
+                cookies=cookies,
+                headers=headers,
                 timeout=timeout,
                 abort=abort
             )
+            
+            log.info(f'Cover download: Response received, status: {getattr(resp, "getcode", lambda: "unknown")()}')
+            
             cdata = resp.read()
             if cdata:
+                log.info(f'Cover download: Successfully downloaded {len(cdata)} bytes')
+                
+                # Convert WebP or other non-JPEG formats to JPEG for Calibre compatibility
+                converted_cdata = self._convert_cover_to_jpeg(cdata, log)
+                if converted_cdata is not cdata:
+                    log.info(f'Cover format converted: {len(cdata)} → {len(converted_cdata)} bytes')
+                    cdata = converted_cdata
+                
                 result_queue.put((self, cdata))
+            else:
+                log.warning('Cover download: No data received')
+                
         except Exception as e:
             log.exception(f'Failed to download cover from {cached_url}: {e}')
+            # Add more detailed error information
+            import traceback
+            log.error(f'Cover download error traceback: {traceback.format_exc()}')
+            
+            # Try alternative method: get cover from gallery page
+            # This is a fallback if direct thumbnail download fails
+            self._try_alternative_cover_download(log, result_queue, abort, identifiers, timeout)
 
     def get_cached_cover_url(self, identifiers: Dict) -> Optional[str]:
         """Retrieve cached cover URL from identifier."""
@@ -670,6 +831,120 @@ class Ehentai(Source):
         else:
             url = self.EHENTAI_URL % (gid, token)
         return ('ehentai', db, url)
+    
+    def _process_cover_url(self, thumb_url: str, log) -> str:
+        """Process and validate cover URL from E-hentai API.
+        
+        Args:
+            thumb_url: Thumbnail URL from API
+            log: Calibre log object
+            
+        Returns:
+            Processed cover URL
+        """
+        if not thumb_url:
+            return ''
+        
+        # Common E-hentai thumbnail URL patterns
+        # 1. https://ehgt.org/t/12/34/1234567890abcd.jpg
+        # 2. https://exhentai.org/t/12/34/1234567890abcd.jpg
+        # 3. Other CDN domains
+        
+        # For now, return the URL as-is
+        # In the future, we might need to:
+        # 1. Convert thumbnail URL to full-size URL
+        # 2. Handle different CDN domains
+        # 3. Add referrer headers
+        
+        log.info(f'Processing cover URL: {thumb_url}')
+        return thumb_url
+    
+    def _try_alternative_cover_download(self, log, result_queue, abort, identifiers, timeout):
+        """Try alternative method to download cover if direct download fails.
+        
+        This method attempts to:
+        1. Get the gallery URL from identifiers
+        2. Fetch the gallery page
+        3. Extract cover image URL from page
+        4. Download the cover
+        """
+        try:
+            log.info('Attempting alternative cover download method')
+            
+            # Get gallery URL from identifiers
+            book_url_info = self.get_book_url(identifiers)
+            if not book_url_info:
+                log.warning('Alternative method: Cannot get gallery URL from identifiers')
+                return
+            
+            _, _, gallery_url = book_url_info
+            log.info(f'Alternative method: Gallery URL: {gallery_url}')
+            
+            # Check if we need ExHentai cookies
+            cookies = []
+            if 'exhentai.org' in gallery_url and self.exhentai_cookies:
+                cookies = self.exhentai_cookies
+            
+            # Fetch gallery page
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9'
+            }
+            
+            resp = self.net.request(
+                gallery_url,
+                proxy=self.proxy_config.get_proxy_dict(),
+                cookies=cookies,
+                headers=headers,
+                timeout=timeout,
+                abort=abort
+            )
+            
+            html_content = resp.read().decode('utf-8', errors='ignore')
+            
+            # Try to extract cover image URL from page
+            # Look for og:image meta tag or cover image in HTML
+            import re
+            
+            # Pattern 1: og:image meta tag
+            og_image_pattern = r'<meta\s+property="og:image"\s+content="([^"]+)"'
+            match = re.search(og_image_pattern, html_content)
+            
+            if not match:
+                # Pattern 2: img tag with id="img"
+                img_pattern = r'<img[^>]*id="img"[^>]*src="([^"]+)"'
+                match = re.search(img_pattern, html_content)
+            
+            if not match:
+                # Pattern 3: First image in the gallery
+                img_pattern = r'<img[^>]*src="(https?://[^"]+\.(?:jpg|jpeg|png|gif|webp))"[^>]*>'
+                match = re.search(img_pattern, html_content)
+            
+            if match:
+                cover_url = match.group(1)
+                log.info(f'Alternative method: Found cover URL: {cover_url}')
+                
+                # Download the cover
+                resp = self.net.request(
+                    cover_url,
+                    proxy=self.proxy_config.get_proxy_dict(),
+                    cookies=cookies,
+                    headers=headers,
+                    timeout=timeout,
+                    abort=abort
+                )
+                
+                cdata = resp.read()
+                if cdata:
+                    log.info(f'Alternative method: Successfully downloaded {len(cdata)} bytes')
+                    result_queue.put((self, cdata))
+                    return
+            
+            log.warning('Alternative method: Could not find cover image in gallery page')
+            
+        except Exception as e:
+            log.error(f'Alternative cover download failed: {e}')
 
 
 # ---------------------------------------------------------------------------
@@ -683,7 +958,7 @@ if __name__ == '__main__':
 
     test_identify_plugin(Ehentai.name, [
         (
-            {'title': '拘束する部活動 (僕は友達が少ない)', 'authors': ['すもも堂']},
+            {'title': 'https://exhentai.org/g/3852759/28339df42d/', 'authors': ['すもも堂']},
             [title_test('拘束する部活動', exact=False)]
         ),
         (
