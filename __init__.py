@@ -354,7 +354,7 @@ class Ehentai(Source):
 
     name = 'E-hentai Galleries'
     author = 'nonpricklycactus'
-    version = (3, 0, 0)
+    version = (3, 0, 1)
     minimum_calibre_version = (9, 0, 0)
     description = _('Download metadata and covers from E-hentai.org or ExHentai.org')
 
