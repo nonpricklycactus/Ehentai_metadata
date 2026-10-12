@@ -75,6 +75,16 @@ try:
     # Try to get translation function from Calibre
     from calibre import _
 except ImportError:
-    # Fallback for testing/development
-    def _(text):
-        return text
+    # Newer Calibre versions no longer re-export the gettext function from the
+    # top-level ``calibre`` package -- they install it into builtins instead
+    # (which is how __init__.py already picks it up).  Prefer that so the
+    # config dialog keeps its translations, and only fall back to a no-op
+    # for standalone testing outside calibre.
+    import builtins
+
+    _builtin_gettext = getattr(builtins, '_', None)
+    if callable(_builtin_gettext):
+        _ = _builtin_gettext
+    else:
+        def _(text):
+            return text

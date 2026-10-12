@@ -12,6 +12,17 @@ __license__ = 'GPL v3'
 __copyright__ = '2026, nonpricklycactus'
 
 
+def set_browser_cookie(br, name, value, domain, path='/'):
+    # Newer Calibre versions renamed ``set_cookie``'s first parameter from
+    # ``name`` to ``cookie_string`` and moved the original (name, value, domain,
+    # path) behaviour to ``set_simple_cookie``.  Prefer that when available so
+    # the plugin keeps working on newer Calibre without breaking older versions.
+    if hasattr(br, 'set_simple_cookie'):
+        br.set_simple_cookie(name, value, domain, path)
+    else:
+        br.set_cookie(name, value, domain, path)
+
+
 class NetworkClient:
     """HTTP client with rate limiting and abort support."""
     
@@ -77,11 +88,12 @@ class NetworkClient:
             
             if cookies:
                 for cookie in cookies:
-                    br.set_cookie(
-                        name=cookie['name'],
-                        value=cookie['value'],
-                        domain=cookie['domain'],
-                        path=cookie['path']
+                    set_browser_cookie(
+                        br,
+                        cookie['name'],
+                        cookie['value'],
+                        cookie['domain'],
+                        cookie['path']
                     )
             
             if headers:
