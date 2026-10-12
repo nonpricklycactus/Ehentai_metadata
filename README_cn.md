@@ -17,16 +17,16 @@
 
 - 由于E-Hentai并没有独立的作者字段，插件所提供的题名与作者是通过正则表达式识别出来的。
 - 由于E站的特殊性，大陆地区需要使用梯子，插件才能正常运行
-- 适用于calibre中python3的所有版本
+- 需要 Calibre 9.0.0 或更高版本。
 
 **安装方法**
 
-1. 打开calibre客户端，选择界面中的首选项
-2. 进入之后我们选择，从文件中加载插件选项
-3. 选择我们下载好的插件zip安装包，选择插件路径
-4. 然后就会提示我们是否安装插件我们选择是
-5. 选择完之后，插件安装完成
-6. 若有其它警告一律选是，重启客户端后看是否安装成功
+1. 从[最新发布页](https://github.com/nonpricklycactus/Ehentai_metadata/releases/latest)下载附件 [Ehentai_metadata.zip](https://github.com/nonpricklycactus/Ehentai_metadata/releases/latest/download/Ehentai_metadata.zip)。请选择插件安装包，不要下载 GitHub 自动生成的 **Source code (zip)**，也无需解压。
+2. 打开 Calibre → 首选项 → 插件 → 从文件加载插件，选择 `Ehentai_metadata.zip`。
+3. 阅读并确认插件安装提示，然后重启 Calibre。
+4. 在首选项 → 元数据下载中启用 **E-hentai Galleries**，并按需配置插件。
+
+升级时，按相同步骤加载新版 `Ehentai_metadata.zip` 并重启 Calibre，再检查已安装版本及 ExHentai cookie、代理等设置。
 
 **数据库配置**
 
@@ -199,9 +199,11 @@ python custom_metadata_server_example.py
 **可能原因**:
 - Cookie 过期或无效
 - Cookie 格式错误
+- 更新 Calibre 后，旧版插件与 Cookie 接口不兼容
 - ExHentai 服务器问题
 
 **解决方案**:
+- 如果更新 Calibre 后 ExHentai 开始提示“No results found”，请安装 v3.0.1 或更高版本插件并重启 Calibre。此版本已适配新版 Calibre 使用的 Cookie 接口。
 - 重新获取有效的 cookies
 - 检查三个cookie值是否完整
 - 确认 ExHentai 账号状态正常
@@ -261,6 +263,12 @@ curl -X POST http://localhost:5000/metadata \
 3. **数据传输**: 使用HTTPS加密传输敏感数据
 
 ## 📚 版本历史
+
+**Version 3.0.1** - 2026-10-12
+
+- 修复新版 Calibre 下的 ExHentai Cookie 设置问题：优先使用 `set_simple_cookie`，并兼容旧版 `set_cookie` 接口。
+- 改进 UI 翻译函数的读取兼容性，支持回退到 Calibre 在 `builtins` 中提供的翻译函数。
+- 补充发行包安装、升级方法及最低支持版本说明。感谢 [@allanmeng](https://github.com/allanmeng) 提交 [PR #17](https://github.com/nonpricklycactus/Ehentai_metadata/pull/17)。
 
 **Version 3.0.0** - 2026-03-22
 

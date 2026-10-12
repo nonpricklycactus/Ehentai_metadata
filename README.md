@@ -20,16 +20,16 @@ This plugin downloads metadata from [E-Hentai Galleries](https://e-hentai.org/).
 
 - Because E-Hentai Galleries dosen't have the author field , the title and author are regular expression matches. 
 - Due to the particularity of E-Hentai, a vpn is needed in the mainland for the plug-in to operate normally
-- Applicable to all versions of python3 in calibre
+- Requires Calibre 9.0.0 or later.
 
 **Installation Notes**
 
-1. Open the calibre client and select the preferences in the interface
-2. After entering, we choose to load the plug-in option from the file
-3. Select the plug-in zip installation package that we downloaded, and select the plug-in path
-4. Then we will be prompted whether to install the plug-in and we choose yes
-5. After selecting, the plug-in installation is complete
-6. If there are other warnings, select yes, restart the client and see if the installation is successful
+1. Download [Ehentai_metadata.zip](https://github.com/nonpricklycactus/Ehentai_metadata/releases/latest/download/Ehentai_metadata.zip) from the latest [release](https://github.com/nonpricklycactus/Ehentai_metadata/releases/latest). Choose the attached plugin package, not GitHub's **Source code (zip)**, and leave it zipped.
+2. Open Calibre → Preferences → Plugins → Load plugin from file, then select `Ehentai_metadata.zip`.
+3. Review and accept the plugin installation warning, then restart Calibre.
+4. In Preferences → Metadata download, enable **E-hentai Galleries** and configure the plugin as needed.
+
+To upgrade, load the new `Ehentai_metadata.zip` in the same way and restart Calibre. Then check the installed version and your ExHentai cookie/proxy settings.
 
 **Database configuration**
 
@@ -202,9 +202,11 @@ python custom_metadata_server_example.py
 **Possible causes**:
 - Cookies expired or invalid
 - Cookie format error
+- Cookie API incompatibility in an older plugin after updating Calibre
 - ExHentai server issues
 
 **Solutions**:
+- If ExHentai starts returning "No results found" after a Calibre update, install plugin v3.0.1 or later and restart Calibre. This version supports the cookie API used by newer Calibre releases.
 - Get fresh valid cookies
 - Check all three cookie values are complete
 - Confirm ExHentai account status is normal
@@ -264,6 +266,12 @@ curl -X POST http://localhost:5000/metadata \
 3. **Data transmission**: Use HTTPS for sensitive data transmission
 
 ## 📚 Version History
+
+**Version 3.0.1** - 2026-10-12
+
+- Fix ExHentai cookie setup on newer Calibre versions by using `set_simple_cookie` when available, with a fallback to the older `set_cookie` API.
+- Improve UI translation-function lookup compatibility by falling back to Calibre's function in `builtins`.
+- Clarify release-package installation, upgrades, and the minimum supported Calibre version. Thanks to [@allanmeng](https://github.com/allanmeng) for [PR #17](https://github.com/nonpricklycactus/Ehentai_metadata/pull/17).
 
 **Version 3.0.0** - 2026-03-22
 
